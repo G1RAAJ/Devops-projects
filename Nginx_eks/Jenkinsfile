@@ -38,8 +38,8 @@ pipeline {
                 }
             }
         }
-        
-        stage('Configure Kubeconfig') {
+
+        stage('Configure Kubeconfig & Deploy') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
@@ -49,32 +49,19 @@ pipeline {
                     aws eks update-kubeconfig \
                     --region $AWS_REGION \
                     --name $CLUSTER_NAME
+
+                    echo "===== CHECK NODES ====="
+                    kubectl get nodes
+
+                    echo "===== DEPLOY NGINX ====="
+                    helm upgrade --install nginx ./Nginx_eks/Helm \
+                    --namespace default
+
+                    echo "===== VERIFY ====="
+                    kubectl get pods -o wide
+                    kubectl get svc
                     '''
                 }
-            }
-        }
-
-        stage('Verify Cluster') {
-            steps {
-                sh 'kubectl get nodes'
-            }
-        }
-
-        stage('Deploy NGINX via Helm') {
-            steps {
-                sh '''
-                helm upgrade --install nginx ./Nginx_eks/Helm \
-                --namespace default
-                '''
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                sh '''
-                kubectl get pods -o wide
-                kubectl get svc
-                '''
             }
         }
     }
