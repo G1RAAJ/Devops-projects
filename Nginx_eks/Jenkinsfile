@@ -38,7 +38,12 @@ pipeline {
                 }
             }
         }
-
+        stage('Check kubectl') {
+            steps {
+                sh 'which kubectl'
+                sh 'kubectl version --client'
+            }
+        }
         stage('Configure Kubeconfig') {
             steps {
                 withCredentials([[
