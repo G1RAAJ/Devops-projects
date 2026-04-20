@@ -1,12 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx
+  name: {{ .Chart.Name }}
 spec:
   type: {{ .Values.service.type }}
   selector:
-    app: nginx
+    app: {{ .Chart.Name }}
   ports:
-    - port: 80
+    - port: {{ .Values.service.port }}
       targetPort: 80
-      
