@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION   = "us-east-1"
+        CLUSTER_NAME = "eks"
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/G1RAAJ/DevOps-Projects.git'
+            }
+        }
+
+        stage('Verify Repo Structure') {
+            steps {
+                sh 'ls -R'
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('Nginx_EKS/Terraform') {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('Nginx_EKS/Terraform') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('Nginx_EKS/Terraform') {
+                    sh 'terraform plan'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('Nginx_EKS/Terraform') {
+                    sh 'terraform apply -auto-approve'
+                }
+            }
+        }
+
+        stage('Configure Kubeconfig') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    sh '''
+                    aws eks update-kubeconfig \
+                    --region $AWS_REGION \
+                    --name $CLUSTER_NAME
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Cluster') {
+            steps {
+                sh 'kubectl get nodes'
+            }
+        }
+
+        stage('Deploy NGINX via Helm') {
+            steps {
+                sh '''
+                helm upgrade --install nginx ./Nginx_EKS/Helm \
+                --namespace default
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                kubectl get pods -o wide
+                kubectl get svc
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo "Deployment Successful"
+        }
+        failure {
+            echo "Deployment Failed"
+        }
+    }
+}
