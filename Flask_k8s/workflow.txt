@@ -1,0 +1,114 @@
+app/
+ ├── Dockerfile
+ ├── app.py
+ ├── requirements.txt
+ ├── k8s/
+ │    ├── deployment.yaml
+ │    ├── service.yaml
+ └── Jenkinsfile
+
+ Developer → GitHub → Jenkins
+                     ↓
+                 Docker Build
+                     ↓
+                 Push to ECR
+                     ↓
+                Kubernetes Deploy
+
+Push code to GitHub
+Jenkins pulls code → builds Docker image
+Push image to AWS ECR
+Deploy to Kubernetes (EKS or self-managed cluster)
+
+
+# Build & Push to ECR
+# Install AWS CLI + Docker (Ubuntu EC2)
+
+sudo apt update
+sudo apt install docker.io -y
+sudo usermod -aG docker ubuntu
+newgrp docker
+
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Authenticate to ECR
+aws configure
+
+aws ecr get-login-password --region us-east-1 \
+| docker login --username AWS \
+--password-stdin <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
+
+# Create Repo
+aws ecr create-repository --repository-name flask-app
+
+# Build & Push
+docker build -t flask-app .
+docker tag flask-app:latest <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/flask-app:latest
+docker push <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/flask-app:latest
+
+# Deploy to Kubernetes
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+
+kubectl get pods
+kubectl get svc
+
+# Install Jenkins (Ubuntu EC2)
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
+sudo sh -c 'echo deb http://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+
+sudo apt update
+sudo apt install jenkins -y
+sudo systemctl start jenkins
+
+# Jenkins Plugins
+Git
+Docker Pipeline
+AWS Credentials
+Kubernetes CLI
+
+# Jenkins Credentials
+AWS credentials (Access Key + Secret)
+Docker/ECR access
+
+# Create IAM Role
+rusted entity: AWS service
+Use case: EC2
+
+# Attach Policies
+AmazonEC2ContainerRegistryFullAccess
+AmazonEKSClusterPolicy
+AmazonEKSWorkerNodePolicy
+
+#recommended instead of full access
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:PutImage",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+
+# EC2 → Instances → Select Jenkins instance → Actions → Security → Modify IAM Role
+
+# Run on Jenkins EC2
+aws sts get-caller-identity
+
+# Final Result
+You now have a fully automated CI/CD pipeline:
+Push → Build → Push → Deploy → Live app

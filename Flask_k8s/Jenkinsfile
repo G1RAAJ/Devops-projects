@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-east-1"
+        ACCOUNT_ID = "<ACCOUNT_ID>"
+        ECR_REGISTRY = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECR_REPO = "flask-app"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    stages {
+
+        stage('Clone Code') {
+            steps {
+                git 'https://github.com/YOUR_REPO.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ${ECR_REPO}:${IMAGE_TAG} .'
+            }
+        }
+
+        stage('Login to ECR') {
+            steps {
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS \
+                --password-stdin $ECR_REGISTRY
+                '''
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                docker tag ${ECR_REPO}:${IMAGE_TAG} $ECR_REGISTRY/${ECR_REPO}:${IMAGE_TAG}
+                docker push $ECR_REGISTRY/${ECR_REPO}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+                '''
+            }
+        }
+    }
+
+    // 🔥 POST BLOCK (runs after pipeline)
+    post {
+
+        always {
+            echo "Pipeline finished (success/failure)"
+        }
+
+        success {
+            echo "Deployment successful"
+        }
+
+        failure {
+            echo "Pipeline failed"
+        }
+
+        // 🔥 Auto destroy after 1 hour
+        cleanup {
+            script {
+                echo "Waiting 1 hour before cleanup..."
+                sleep(time: 1, unit: 'HOURS')
+
+                sh '''
+                echo "Deleting Kubernetes resources..."
+                kubectl delete -f k8s/deployment.yaml --ignore-not-found
+                kubectl delete -f k8s/service.yaml --ignore-not-found
+                '''
+            }
+        }
+    }
+}
