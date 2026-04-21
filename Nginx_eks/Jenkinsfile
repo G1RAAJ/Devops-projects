@@ -50,31 +50,45 @@ pipeline {
                     --region $AWS_REGION \
                     --name $CLUSTER_NAME
 
-                    echo "===== CHECK NODES ====="
                     kubectl get nodes
 
-                    echo "===== DEPLOY NGINX ====="
                     helm upgrade --install nginx ./Nginx_eks/Helm \
                     --namespace default
 
-                    echo "===== VERIFY ====="
                     kubectl get pods -o wide
                     kubectl get svc
                     '''
                 }
             }
         }
+    }
 
-        // 🔥 NEW STAGE
-        stage('Auto Cleanup') {
-            steps {
-                echo "Waiting 1 Hour before cleanup..."
+    // ✅ Correct placement
+    post {
+
+        success {
+            echo "✅ Deployment Successful"
+        }
+
+        failure {
+            echo "❌ Deployment Failed"
+        }
+
+        always {
+            cleanWs()
+        }
+
+        // 🔥 Auto Cleanup AFTER 1 hour
+        cleanup {
+            script {
+                echo "Waiting 1 hour before cleanup..."
                 sleep(time: 1, unit: 'HOURS')
 
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
                     credentialsId: 'aws-creds'
                 ]]) {
+
                     sh '''
                     aws eks update-kubeconfig \
                     --region $AWS_REGION \
@@ -92,18 +106,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
-        }
-        success {
-            echo "✅ Deployment Successful"
-        }
-        failure {
-            echo "❌ Deployment Failed"
         }
     }
 }
