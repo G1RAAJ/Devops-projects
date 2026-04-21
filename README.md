@@ -14,7 +14,7 @@ H 2 * * *
 
 
 finally
-if you can't remove all resource then remove manually like ec2 instances, eks, s3 bucket, roles, IAM user, load balancer, autoscalling group, elastic ips, security groups and etc to avid bill.
+if you can't remove all resource then remove manually like ec2 instances, eks, s3 bucket, roles, IAM user, load balancer, autoscalling group, elastic ips, security groups vpc and etc to avid bill.
 
 Run on Jenkins EC2:
 kubectl delete all --all || true
