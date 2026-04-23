@@ -29,7 +29,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                dir('Flask_k8s') {
+                dir('Flask_k8s/app') {
                     sh '''
                     docker build -t $ECR_REPO:$IMAGE_TAG .
                     '''
