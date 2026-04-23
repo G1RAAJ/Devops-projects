@@ -38,6 +38,9 @@ aws ecr create-repository \
 --repository-name flask-app \
 --region us-east-1
 
+# Verify repository
+aws ecr describe-repositories --region us-east-1
+
 # Authenticate to ECR
 aws configure
 
