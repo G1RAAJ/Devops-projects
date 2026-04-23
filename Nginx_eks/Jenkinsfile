@@ -77,35 +77,5 @@ pipeline {
         always {
             cleanWs()
         }
-
-        // 🔥 Auto Cleanup AFTER 1 hour
-        cleanup {
-            script {
-                echo "Waiting 1 hour before cleanup..."
-                sleep(time: 1, unit: 'HOURS')
-
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-creds'
-                ]]) {
-
-                    sh '''
-                    aws eks update-kubeconfig \
-                    --region $AWS_REGION \
-                    --name $CLUSTER_NAME || true
-
-                    echo "===== DELETE K8S RESOURCES ====="
-                    kubectl delete all --all || true
-                    '''
-
-                    dir('Nginx_eks/Terraform') {
-                        sh '''
-                        terraform init
-                        terraform destroy -auto-approve
-                        '''
-                    }
-                }
-            }
-        }
     }
 }
