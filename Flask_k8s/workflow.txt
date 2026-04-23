@@ -24,7 +24,7 @@ Jenkins pulls code → builds Docker image
 Push image to AWS ECR
 Deploy to Kubernetes (EKS or self-managed cluster)
 ------------------------------------------------------
-# One-Time Setup on Jenkins (Amazon Linux 2023)
+# One-Time Setup on Jenkins CLI (Amazon Linux 2023)
 sudo dnf update -y
 
 # Core tools
@@ -56,6 +56,40 @@ kubectl version --client
 
 # Configure AWS Access look like 652942059461
 aws sts get-caller-identity
+
+# Jenkins Plugins
+Git
+Docker Pipeline
+AWS Credentials
+Kubernetes CLI
+
+# IAM user
+Get IAM User name, Password, Console sign-in URL
+Access key ID, Secret access key
+
+# Jenkins Credentials
+AWS credentials (Access Key + Secret)
+Docker/ECR access
+
+# Create IAM Role
+rusted entity: AWS service
+Use case: EC2
+
+role name is jenkins-eks-role
+
+# Attach Policies
+AmazonEC2ContainerRegistryFullAccess
+AmazonEKSClusterPolicy
+AmazonEKSWorkerNodePolicy
+AdministratorAccess
+AmazonEC2FullAccess
+AWSCloudFormationFullAccess
+
+# EC2 → Instances → Select Jenkins instance → Actions → Security → Modify IAM Role
+
+# Run on Jenkins EC2
+aws sts get-caller-identity
+
 
 # Create ECR repository
 aws ecr create-repository \
@@ -135,44 +169,10 @@ eksctl create nodegroup \
 --node-type t3.small \
 --nodes 2
 
+
 kubectl get nodes
 kubectl get pods -A
 kubectl get svc
-
-
-
-# Jenkins Plugins
-Git
-Docker Pipeline
-AWS Credentials
-Kubernetes CLI
-
-# IAM user
-Get IAM User name, Password, Console sign-in URL
-Access key ID, Secret access key
-
-# Jenkins Credentials
-AWS credentials (Access Key + Secret)
-Docker/ECR access
-
-# Create IAM Role
-rusted entity: AWS service
-Use case: EC2
-
-role name is jenkins-eks-role
-
-# Attach Policies
-AmazonEC2ContainerRegistryFullAccess
-AmazonEKSClusterPolicy
-AmazonEKSWorkerNodePolicy
-AdministratorAccess
-AmazonEC2FullAccess
-AWSCloudFormationFullAccess
-
-# EC2 → Instances → Select Jenkins instance → Actions → Security → Modify IAM Role
-
-# Run on Jenkins EC2
-aws sts get-caller-identity
 
 # Final Result
 You now have a fully automated CI/CD pipeline:
@@ -267,33 +267,4 @@ Verify deletion
 aws eks list-clusters --region us-east-1
 
 []
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
