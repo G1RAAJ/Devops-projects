@@ -79,6 +79,35 @@ docker push 652942059461.dkr.ecr.us-east-1.amazonaws.com/flask-app:9
 aws eks list-clusters
 aws eks list-clusters --region us-east-1
 
+# Install eksctl
+curl --silent --location \
+"https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" \
+| tar xz -C /tmp
+
+sudo mv /tmp/eksctl /usr/local/bin
+eksctl version
+
+# Verify AWS access
+aws sts get-caller-identity
+
+# Create EKS Cluster
+eksctl create cluster \
+--name myeks \
+--region us-east-1 \
+--nodegroup-name standard-workers \
+--node-type t3.medium \
+--nodes 2
+
+⏳ Wait Time:  10–15 minutes
+
+# Verify cluster
+aws eks list-clusters --region us-east-1
+
+# output should be below
+{
+  "clusters": ["myeks"]
+}
+
 # Connect to EKS
 aws eks update-kubeconfig \
 --region us-east-1 \
@@ -86,6 +115,7 @@ aws eks update-kubeconfig \
 
 kubectl get nodes
 
+Jenkins → connects to cluster → deploys app
 ------------
 
 # Build & Push
