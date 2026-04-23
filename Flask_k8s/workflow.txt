@@ -127,6 +127,16 @@ eksctl get nodegroup \
 
 kubectl get nodes
 
+# Create nodegroup
+eksctl create nodegroup \
+--cluster myeks \
+--region us-east-1 \
+--name ng-1 \
+--node-type t3.small \
+--nodes 2
+
+kubectl get nodes
+
 # if cluster not properly created and recreate it
 eksctl delete cluster --region=us-east-1 --name=myeks
 
