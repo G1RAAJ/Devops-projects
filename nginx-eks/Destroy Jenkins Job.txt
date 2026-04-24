@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-east-1"
+        CLUSTER_NAME = "myeks"
+    }
+
+    stages {
+
+        stage('Delete Helm') {
+            steps {
+                sh 'helm uninstall nginx || true'
+            }
+        }
+
+        stage('Destroy Terraform') {
+            steps {
+                dir('Tform') {
+                    sh '''
+                    terraform init
+                    terraform destroy -auto-approve
+                    '''
+                }
+            }
+        }
+
+        stage('Delete Cluster (Backup)') {
+            steps {
+                sh '''
+                eksctl delete cluster \
+                --name $CLUSTER_NAME \
+                --region $AWS_REGION || true
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
