@@ -17,7 +17,7 @@ module "vpc" {
   single_nat_gateway = true
 }
 
-module "myeks" {
+module "eks" {
   source  = "terraform-aws-modules/myeks/aws"
   version = "20.37.2"
 
@@ -30,7 +30,7 @@ module "myeks" {
   create_cloudwatch_log_group = false
   create_kms_key              = false
 
-  myeks_managed_node_groups = {
+  eks_managed_node_groups = {
     default = {
       instance_types = ["t3.small"]
       desired_size   = 2
