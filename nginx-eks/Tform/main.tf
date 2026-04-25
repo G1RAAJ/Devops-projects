@@ -18,7 +18,7 @@ module "vpc" {
 }
 
 module "eks" {
-  source  = "terraform-aws-modules/eks/aws"   # 🔥 MUST HAVE
+  source  = "terraform-aws-modules/eks/aws"
   version = "20.37.2"
 
   cluster_name    = "myeks"
@@ -27,8 +27,10 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
+  # 🔥 FIXES
   create_cloudwatch_log_group = false
   create_kms_key              = false
+  enable_cluster_encryption   = false   # 🔥 ADD THIS
 
   eks_managed_node_groups = {
     default = {
@@ -39,3 +41,5 @@ module "eks" {
     }
   }
 }
+
+ 
