@@ -2,25 +2,32 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = "us-east-1"
+        AWS_REGION   = "us-east-1"
         CLUSTER_NAME = "myeks"
-        ACCOUNT_ID = "652942059461"
-        IMAGE_NAME = "nginx"
+        ACCOUNT_ID   = "652942059461"
+        IMAGE_NAME   = "nginx"
+        REPO_URL     = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                 git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
+                git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
             }
         }
-        
-        stage('Run Setup Script') {
+
+        // 🔥 Run setup ONLY if needed
+        stage('Setup (One-Time Check)') {
             steps {
                 sh '''
-                chmod +x setup.sh
-                sudo bash setup.sh
+                if ! command -v kubectl > /dev/null; then
+                    echo "Running setup..."
+                    chmod +x setup.sh
+                    sudo bash setup.sh
+                else
+                    echo "Setup already done, skipping"
+                fi
                 '''
             }
         }
@@ -28,12 +35,10 @@ pipeline {
         stage('Verify Tools') {
             steps {
                 sh '''
-                curl --version
-                wget --version
                 git --version
                 java -version
-                docker --version
                 aws --version
+                docker --version
                 jenkins --version
                 kubectl version --client
                 eksctl version
@@ -41,7 +46,7 @@ pipeline {
                 '''
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 sh '''
@@ -50,46 +55,62 @@ pipeline {
             }
         }
 
+        // 🔐 AWS Credentials binding
         stage('Login to ECR') {
             steps {
-                sh '''
-                aws ecr get-login-password --region $AWS_REGION \
-                | docker login --username AWS \
-                --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-                '''
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    sh '''
+                    aws ecr describe-repositories --repository-names $IMAGE_NAME \
+                    || aws ecr create-repository --repository-name $IMAGE_NAME
+
+                    aws ecr get-login-password --region $AWS_REGION \
+                    | docker login --username AWS \
+                    --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                    '''
+                }
             }
         }
 
         stage('Push to ECR') {
             steps {
                 sh '''
-                docker tag $IMAGE_NAME:latest \
-                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
-
-                docker push \
-                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+                docker tag $IMAGE_NAME:latest $REPO_URL:latest
+                docker push $REPO_URL:latest
                 '''
             }
         }
 
-        stage('Terraform Apply') {
+        stage('Terraform Apply (EKS)') {
             steps {
-                dir('Tform') {
-                    sh '''
-                    terraform init
-                    terraform apply -auto-approve
-                    '''
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    dir('Tform') {
+                        sh '''
+                        terraform init -reconfigure
+                        terraform apply -auto-approve
+                        '''
+                    }
                 }
             }
         }
 
         stage('Configure Kubeconfig') {
             steps {
-                sh '''
-                aws eks update-kubeconfig \
-                --region $AWS_REGION \
-                --name $CLUSTER_NAME
-                '''
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    sh '''
+                    aws eks update-kubeconfig \
+                    --region $AWS_REGION \
+                    --name $CLUSTER_NAME
+                    '''
+                }
             }
         }
 
@@ -97,14 +118,17 @@ pipeline {
             steps {
                 sh '''
                 helm repo add bitnami https://charts.bitnami.com/bitnami
+                helm repo update
 
                 helm upgrade --install nginx bitnami/nginx \
+                --set image.repository=$REPO_URL \
+                --set image.tag=latest \
                 --set service.type=LoadBalancer
                 '''
             }
         }
 
-        stage('Verify') {
+        stage('Verify Deployment') {
             steps {
                 sh '''
                 kubectl get nodes
@@ -112,6 +136,18 @@ pipeline {
                 kubectl get svc
                 '''
             }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo "✅ Deployment Successful"
+        }
+        failure {
+            echo "❌ Pipeline Failed"
         }
     }
 }
