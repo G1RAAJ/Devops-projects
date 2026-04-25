@@ -54,17 +54,6 @@ pipeline {
             }
         }
 
-        stage('Index File') {
-            steps {
-                dir('nginx-eks') {
-                    sh '''
-                    echo "<h1>Nginx Working</h1>" > index.html
-                    ls -l
-                    '''
-                }
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 dir('nginx-eks') {
