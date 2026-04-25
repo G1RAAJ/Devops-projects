@@ -18,7 +18,7 @@ module "vpc" {
 }
 
 module "eks" {
-  source  = "terraform-aws-modules/myeks/aws"
+  source  = "terraform-aws-modules/eks/aws"   # 🔥 MUST HAVE
   version = "20.37.2"
 
   cluster_name    = "myeks"
