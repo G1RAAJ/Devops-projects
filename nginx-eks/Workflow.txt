@@ -1,5 +1,9 @@
 Nginx → Docker → EKS → Helm → Terraform → Jenkins → LoadBalancer → Live App
 -----------------------------------------------------------------------------
+Project: Nginx → Docker → ECR → EKS → Helm → Terraform → Jenkins → LoadBalancer → Live App
+------------------------------------------------------------------------------------------
+# https://www.jenkins.io/doc/tutorials/tutorial-for-installing-jenkins-on-AWS/#downloading-and-installing-jenkins
+
 Project workflow 
 
 🔷 1. Project / Folder Structure
