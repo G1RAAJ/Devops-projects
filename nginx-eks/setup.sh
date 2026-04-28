@@ -1,6 +1,5 @@
-Project: Nginx → Docker → ECR → EKS → Helm → Terraform → Jenkins → LoadBalancer → Live App
-------------------------------------------------------------------------------------------
-# https://www.jenkins.io/doc/tutorials/tutorial-for-installing-jenkins-on-AWS/#downloading-and-installing-jenkins
+#!/bin/bash
+
 
 echo "🔹 Updating for Amazon Linux 2023"
 sudo yum -y update
