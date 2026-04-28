@@ -1,4 +1,4 @@
-Removing EKS
+Please read it below before Removing EKS
 --------------
 you can remove destroy stage by including on Jenkinsfile 
 or 
