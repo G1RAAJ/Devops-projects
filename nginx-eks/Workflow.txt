@@ -1,8 +1,5 @@
-Nginx → Docker → EKS → Helm → Terraform → Jenkins → LoadBalancer → Live App
------------------------------------------------------------------------------
 Project: Nginx → Docker → ECR → EKS → Helm → Terraform → Jenkins → LoadBalancer → Live App
 ------------------------------------------------------------------------------------------
-# https://www.jenkins.io/doc/tutorials/tutorial-for-installing-jenkins-on-AWS/#downloading-and-installing-jenkins
 
 Project workflow 
 
@@ -22,6 +19,7 @@ nginx-eks-project/
 ├── Jenkinsfile
 └── destroy.Jenkinsfile
 
+# https://www.jenkins.io/doc/tutorials/tutorial-for-installing-jenkins-on-AWS/#downloading-and-installing-jenkins
 # Install tools (Amazon Linux 2023)
 # update
 # Java
