@@ -1,0 +1,10 @@
+nginx-eks/
+├── Dockerfile
+├── index.html
+├── Jenkinsfile
+├── k8s/
+│   ├── deployment.yaml
+│   └── service.yaml
+└── Tform/
+    └── main.tf
+  

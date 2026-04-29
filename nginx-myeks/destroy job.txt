@@ -1,0 +1,70 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-east-1"
+        CLUSTER_NAME = "myeks-2"
+        ACCOUNT_ID = "652942059461"
+        IMAGE_NAME = "nginx"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/YOUR_REPO.git'
+            }
+        }
+
+        stage('Configure Kubeconfig') {
+            steps {
+                sh '''
+                aws eks update-kubeconfig \
+                --region $AWS_REGION \
+                --name $CLUSTER_NAME || true
+                '''
+            }
+        }
+
+        stage('Delete Kubernetes Resources') {
+            steps {
+                sh '''
+                kubectl delete -f k8s/ --ignore-not-found=true
+                '''
+            }
+        }
+
+        stage('Terraform Destroy') {
+            steps {
+                dir('Tform') {
+                    sh '''
+                    terraform init
+                    terraform destroy -auto-approve
+                    '''
+                }
+            }
+        }
+
+        stage('Delete ECR Repo (Optional)') {
+            steps {
+                sh '''
+                aws ecr delete-repository \
+                --repository-name $IMAGE_NAME \
+                --region $AWS_REGION \
+                --force || true
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🔥 All resources destroyed successfully"
+        }
+        failure {
+            echo "❌ Destroy failed - check logs"
+        }
+    }
+}
+
+    
