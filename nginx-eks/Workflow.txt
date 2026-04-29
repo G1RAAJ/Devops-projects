@@ -59,6 +59,7 @@ Kubernetes CLI
 AWS Credentials
 Blue Ocean
 
+👉 Note: Attach either AWS credentials or IAM role, not required both.
 🔷 5.Add AWS Credentials
 Manage Jenkins → Credentials → Add
 Kind: AWS Credentials
