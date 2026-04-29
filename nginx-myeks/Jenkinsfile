@@ -12,7 +12,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git 'https://github.com/YOUR_REPO.git'
+                git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
             }
         }
 
@@ -60,7 +60,7 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                dir('Tform') {
+                dir('nginx-myeks/Tform') {
                     sh '''
                     terraform init
                     terraform apply -auto-approve
@@ -82,7 +82,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                sed -i "s/ACCOUNT_ID/$ACCOUNT_ID/g" K8s/deployment.yaml
+                sed -i "s/ACCOUNT_ID/$ACCOUNT_ID/g" nginx-myeks/K8s/deployment.yaml
                 kubectl apply -f K8s/
                 '''
             }
