@@ -29,14 +29,14 @@ pipeline {
         stage('Delete Kubernetes Resources') {
             steps {
                 sh '''
-                kubectl delete -f k8s/ --ignore-not-found=true
+                kubectl delete -f nginx-myeks/k8s/ --ignore-not-found=true
                 '''
             }
         }
 
         stage('Terraform Destroy') {
             steps {
-                dir('Tform') {
+                dir('nginx-myeks/Tform') {
                     sh '''
                     terraform init
                     terraform destroy -auto-approve
