@@ -182,6 +182,54 @@ Note:
 # if cluster not properly created and recreate it
 eksctl delete cluster --region=us-east-1 --name=myeks
 
+Jenkins Built in node memory configuration
+--------------------------------------------
+Free Swap Space 2GB
+⚙️ PART 1 — Set 2GB Swap
+1️⃣ Remove existing swap (if any)
+sudo swapoff -a
+sudo rm -f /swapfile
+
+2️⃣ Create new 2GB swap
+sudo fallocate -l 2G /swapfile
+
+3️⃣ Set permissions
+sudo chmod 600 /swapfile
+
+4️⃣ Create swap area
+sudo mkswap /swapfile
+
+5️⃣ Enable swap
+sudo swapon /swapfile
+
+6️⃣ Verify
+free -h
+
+7️⃣ Make it permanent
+echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
+
+⚙️ PART 2 — Set /tmp to 2GB
+1️⃣ Check current mount
+mount | grep /tmp
+
+2️⃣ Edit fstab
+sudo nano /etc/fstab
+
+👉Add this line:
+tmpfs /tmp tmpfs defaults,size=2G 0 0
+
+to save it, press Ctrl+x, y and m
+
+3️⃣ Apply changes
+sudo mount -o remount /tmp
+
+4️⃣ Verify
+df -h /tmp
+
+set each 1GB as required on jenkins/nodes/Built-in-node/configure
+Apply and Save
+
+
 *********************************************************
 Destroy Job
 *********************************************************
