@@ -5,7 +5,7 @@ module "eks" {
   cluster_name    = "myeks-2"
   cluster_version = "1.30"
 
-  vpc_id     = "vpc_id = "vpc-09a23ce107252dc4b"
+  vpc_id     = "vpc-09a23ce107252dc4b"
   subnet_ids = ["subnet-04a75877b20cf9bf4", "subnet-079b66fb0be7efc65"]
 
   # ✅ ADD HERE 👇
