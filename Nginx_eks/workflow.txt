@@ -88,7 +88,7 @@ AWSCloudFormationFullAccess
 aws sts get-caller-identity
 
 ------------------------------------------------------
-Problems solving Commands
+Resource deleting Commands
 -----------------------------
 1.Force delete using AWS CLI
 aws eks delete-cluster --name myeks --region us-east-1
