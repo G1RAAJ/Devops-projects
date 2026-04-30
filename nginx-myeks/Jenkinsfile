@@ -12,7 +12,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-               git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
+                git 'https://github.com/G1RAAJ/Devops-projects.git'
             }
         }
 
@@ -20,7 +20,6 @@ pipeline {
             steps {
                 dir('nginx-myeks') {
                     sh '''
-                    echo "🔹 Building Docker image"
                     docker build -t $IMAGE_NAME .
                     '''
                 }
@@ -30,7 +29,6 @@ pipeline {
         stage('Ensure ECR Repo') {
             steps {
                 sh '''
-                echo "🔹 Ensuring ECR repository"
                 aws ecr describe-repositories \
                 --repository-names $IMAGE_NAME \
                 --region $AWS_REGION >/dev/null 2>&1 || \
@@ -44,7 +42,6 @@ pipeline {
         stage('ECR Login') {
             steps {
                 sh '''
-                echo "🔹 Logging into ECR"
                 aws ecr get-login-password --region $AWS_REGION \
                 | docker login --username AWS \
                 --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
@@ -56,7 +53,6 @@ pipeline {
             steps {
                 dir('nginx-myeks') {
                     sh '''
-                    echo "🔹 Tagging & pushing image"
                     docker tag $IMAGE_NAME \
                     $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
 
@@ -67,11 +63,10 @@ pipeline {
             }
         }
 
-        stage('Terraform Apply (EKS)') {
+        stage('Terraform Apply') {
             steps {
                 dir('nginx-myeks/Tform') {
                     sh '''
-                    echo "🔹 Applying Terraform"
                     terraform init
                     terraform apply -auto-approve
                     '''
@@ -82,19 +77,9 @@ pipeline {
         stage('Configure Kubeconfig') {
             steps {
                 sh '''
-                echo "🔹 Configuring kubeconfig"
                 aws eks update-kubeconfig \
                 --region $AWS_REGION \
                 --name $CLUSTER_NAME
-                '''
-            }
-        }
-
-        stage('Cluster Connectivity Check') {
-            steps {
-                sh '''
-                echo "🔹 Verifying cluster access"
-                kubectl get nodes
                 '''
             }
         }
@@ -105,37 +90,35 @@ pipeline {
                     sh '''
                     set -e
 
-                    echo "🔹 Verify cluster connectivity"
+                    echo "Checking cluster"
                     kubectl get nodes
 
-                    echo "🔹 Deploy application"
+                    echo "Deploying app"
                     export ACCOUNT_ID=$ACCOUNT_ID
-        
+
                     envsubst < K8s/deployment.yaml | kubectl apply -f -
                     kubectl apply -f K8s/service.yaml
                     '''
-               }
+                }
             }
         }
 
-        stage('Verify Deployment') {
+        stage('Verify') {
             steps {
                 sh '''
-                echo "🔹 Pods:"
-                kubectl get pods -o wide
-
-                echo "🔹 Services:"
+                kubectl get pods
                 kubectl get svc
                 '''
             }
         }
+    }
 
     post {
         success {
-            echo "✅ Deployment Successful"
+            echo "SUCCESS"
         }
         failure {
-            echo "❌ Deployment Failed - Check logs above"
+            echo "FAILED"
         }
     }
 }
