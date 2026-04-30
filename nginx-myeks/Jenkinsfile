@@ -97,8 +97,8 @@ pipeline {
             steps {
                 dir('nginx-myeks') {
                     sh '''
-                    sed -i "s/ACCOUNT_ID/$ACCOUNT_ID/g" k8s/deployment.yaml
-                    kubectl apply -f k8s/
+                    sed -i "s/ACCOUNT_ID/$ACCOUNT_ID/g" K8s/deployment.yaml
+                    kubectl apply -f K8s/
                     '''
                 }
             }
