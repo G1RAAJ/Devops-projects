@@ -12,25 +12,17 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
-            }
-        }
-
-        stage('Debug Files') {
-            steps {
-                sh '''
-                echo "Current path:"
-                pwd
-                echo "Files:"
-                ls -l
-                '''
+                git 'https://github.com/G1RAAJ/Devops-projects.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 dir('nginx-myeks') {
-                    sh 'docker build -t $IMAGE_NAME .'
+                    sh '''
+                    echo "🔹 Building Docker image"
+                    docker build -t $IMAGE_NAME .
+                    '''
                 }
             }
         }
@@ -38,6 +30,7 @@ pipeline {
         stage('Ensure ECR Repo') {
             steps {
                 sh '''
+                echo "🔹 Ensuring ECR repository"
                 aws ecr describe-repositories \
                 --repository-names $IMAGE_NAME \
                 --region $AWS_REGION >/dev/null 2>&1 || \
@@ -51,6 +44,7 @@ pipeline {
         stage('ECR Login') {
             steps {
                 sh '''
+                echo "🔹 Logging into ECR"
                 aws ecr get-login-password --region $AWS_REGION \
                 | docker login --username AWS \
                 --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
@@ -62,6 +56,7 @@ pipeline {
             steps {
                 dir('nginx-myeks') {
                     sh '''
+                    echo "🔹 Tagging & pushing image"
                     docker tag $IMAGE_NAME \
                     $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
 
@@ -76,6 +71,7 @@ pipeline {
             steps {
                 dir('nginx-myeks/Tform') {
                     sh '''
+                    echo "🔹 Applying Terraform"
                     terraform init
                     terraform apply -auto-approve
                     '''
@@ -86,9 +82,19 @@ pipeline {
         stage('Configure Kubeconfig') {
             steps {
                 sh '''
+                echo "🔹 Configuring kubeconfig"
                 aws eks update-kubeconfig \
                 --region $AWS_REGION \
                 --name $CLUSTER_NAME
+                '''
+            }
+        }
+
+        stage('Cluster Connectivity Check') {
+            steps {
+                sh '''
+                echo "🔹 Verifying cluster access"
+                kubectl get nodes
                 '''
             }
         }
@@ -97,11 +103,10 @@ pipeline {
             steps {
                 dir('nginx-myeks') {
                     sh '''
-                    echo "🔹 Checking cluster connectivity"
-                    kubectl get nodes
-
                     echo "🔹 Deploying application"
+
                     export ACCOUNT_ID=$ACCOUNT_ID
+
                     envsubst < K8s/deployment.yaml | kubectl apply -f -
                     kubectl apply -f K8s/service.yaml
                     '''
@@ -109,14 +114,11 @@ pipeline {
             }
         }
 
-        stage('Verify') {
+        stage('Verify Deployment') {
             steps {
                 sh '''
-                echo "🔹 Nodes:"
-                kubectl get nodes
-
                 echo "🔹 Pods:"
-                kubectl get pods
+                kubectl get pods -o wide
 
                 echo "🔹 Services:"
                 kubectl get svc
@@ -130,7 +132,7 @@ pipeline {
             echo "✅ Deployment Successful"
         }
         failure {
-            echo "❌ Deployment Failed"
+            echo "❌ Deployment Failed - Check logs above"
         }
     }
 }
