@@ -12,7 +12,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
+                git 'https://github.com/G1RAAJ/Devops-projects.git'
             }
         }
 
@@ -97,8 +97,13 @@ pipeline {
             steps {
                 dir('nginx-myeks') {
                     sh '''
-                    sed -i "s/ACCOUNT_ID/$ACCOUNT_ID/g" K8s/deployment.yaml
-                    kubectl apply -f K8s/
+                    echo "🔹 Checking cluster connectivity"
+                    kubectl get nodes
+
+                    echo "🔹 Deploying application"
+                    export ACCOUNT_ID=$ACCOUNT_ID
+                    envsubst < K8s/deployment.yaml | kubectl apply -f -
+                    kubectl apply -f K8s/service.yaml
                     '''
                 }
             }
@@ -107,8 +112,13 @@ pipeline {
         stage('Verify') {
             steps {
                 sh '''
+                echo "🔹 Nodes:"
                 kubectl get nodes
+
+                echo "🔹 Pods:"
                 kubectl get pods
+
+                echo "🔹 Services:"
                 kubectl get svc
                 '''
             }
