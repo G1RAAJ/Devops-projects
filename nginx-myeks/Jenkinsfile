@@ -103,14 +103,18 @@ pipeline {
             steps {
                 dir('nginx-myeks') {
                     sh '''
-                    echo "🔹 Deploying application"
+                    set -e
 
+                    echo "🔹 Verify cluster connectivity"
+                    kubectl get nodes
+
+                    echo "🔹 Deploy application"
                     export ACCOUNT_ID=$ACCOUNT_ID
-
+        
                     envsubst < K8s/deployment.yaml | kubectl apply -f -
                     kubectl apply -f K8s/service.yaml
                     '''
-                }
+               }
             }
         }
 
@@ -125,7 +129,6 @@ pipeline {
                 '''
             }
         }
-    }
 
     post {
         success {
