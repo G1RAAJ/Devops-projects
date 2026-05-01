@@ -10,7 +10,7 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.37.2"
 
-  cluster_name    = "myeks-2"
+  cluster_name    = "myeks-1"
   cluster_version = "1.30"
 
   vpc_id = "vpc-09a23ce107252dc4b"
