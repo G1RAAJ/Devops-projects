@@ -80,6 +80,7 @@ AmazonEKSClusterPolicy
 AmazonEKSWorkerNodePolicy
 AdministratorAccess
 AmazonEC2FullAccess
+AmazonVPCFullAccess
 AWSCloudFormationFullAccess
 
 🔷 7.EC2 → Instances → Select Jenkins instance → Actions → Security → Modify IAM Role
