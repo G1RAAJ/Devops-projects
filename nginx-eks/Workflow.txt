@@ -52,10 +52,20 @@ Access key ID, Secret access key
 🔷 4. Jenkins Setup for Plugins
 Manage Jenkins → Plugins
 
-Pipeline
-Git
+Amazon EC2 plugin
+Amazon ECR plugin
+Amazon Web Services SDK :: CloudWatch
+Amazon Web Services SDK :: ECS
+AWS CodePipeline Plugin
 Docker Pipeline
-Kubernetes CLI
+GitHub Authentication plugin
+GitHub Integration Plugin
+Kubernetes CLI Plugin
+Pipeline
+Pipeline Graph View
+Pipeline: GitHub
+Pipeline: Stage View Plugin
+Git
 AWS Credentials
 Blue Ocean
 
@@ -85,73 +95,6 @@ CloudWatchFullAccess
 
 🔷 7.EC2 → Instances → Select Jenkins instance → Actions → Security → Modify IAM Role
 
-# Run on Jenkins EC2
-aws sts get-caller-identity
-
-------------------------------------------------------
-Problems solving Commands
------------------------------
-1.Force delete using AWS CLI
-aws eks delete-cluster --name myeks --region us-east-1
-
-2.Monitor deletion
-aws eks describe-cluster --name myeks --region us-east-1
-
-3.List node groups
-aws eks list-nodegroups \
---cluster-name myeks \
---region us-east-1
-
-4.Delete node group
-aws eks delete-nodegroup \
---cluster-name myeks \
---nodegroup-name default \
---region us-east-1
-
-5.Wait until deletion completes
-aws eks describe-nodegroup \
---cluster-name myeks \
---nodegroup-name default \
---region us-east-1
-
-6.Verify
-aws eks list-clusters
-[] # means emty cluster
-
-7.Get your real values
-aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" \
---query "Vpcs[0].VpcId" --output text
-
-aws ec2 describe-subnets \
---filters "Name=default-for-az,Values=true" \
---query "Subnets[*].SubnetId" --output text
-
-8.Delete Load Balancers
-aws elbv2 describe-load-balancers
-
-9.Delete NAT Gateway
-aws ec2 describe-nat-gateways
-
-aws ec2 delete-nat-gateway --nat-gateway-id nat-xxxx
-
-10.Detach & delete Internet Gateway
-aws ec2 describe-internet-gateways
-aws ec2 detach-internet-gateway --internet-gateway-id igw-xxxx --vpc-id vpc-xxxx
-aws ec2 delete-internet-gateway --internet-gateway-id igw-xxxx
-
-11.Delete Subnets
-aws ec2 describe-subnets --filters Name=vpc-id,Values=vpc-xxxx
-aws ec2 delete-subnet --subnet-id subnet-xxxx
-
-12.Finally delete VPC
-aws ec2 delete-vpc --vpc-id vpc-xxxx
-
-13.workspace Cleanup
-sudo rm -rf /var/lib/jenkins/workspace/*
-sudo rm -rf /var/lib/jenkins/jobs/*/builds/*
-docker system prune -a -f
-
--------------------------------------
 Jenkins Built in node memory configuration
 --------------------------------------------
 Free Swap Space 2GB
@@ -199,5 +142,156 @@ df -h /tmp
 set each 1GB as required on jenkins/nodes/Built-in-node/configure
 Apply and Save
 
+--------------------------------------------------------
+To check all resources whether they are created or not
+-------------------------------------------------------
 
+✔ EKS cluster
+✔ Nodegroups
+✔ EC2 instances
+✔ ECR repository
+✔ Kubernetes (pods/services)
+✔ Terraform state
 
+✅ 🔍 1. Check EKS Cluster
+aws eks list-clusters --region us-east-1
+
+aws eks describe-cluster \
+--name myeks-1 \
+--region us-east-1 \
+--query "cluster.status"
+
+✅ 🔍 2. Check Nodegroups
+aws eks list-nodegroups \
+--cluster-name myeks-1 \
+--region us-east-1
+
+Detailed status
+aws eks describe-nodegroup \
+--cluster-name myeks-1 \
+--nodegroup-name default \
+--region us-east-1 \
+--query "nodegroup.status"
+
+✅ 🔍 3. Check EC2 Instances (Worker Nodes)
+aws ec2 describe-instances \
+--filters "Name=tag:eks:cluster-name,Values=myeks-1" \
+--query "Reservations[*].Instances[*].InstanceId" \
+--region us-east-1
+
+✅ 🔍 4. Check ECR Repository
+aws ecr describe-repositories --region us-east-1
+
+✅ 🔍 5. Check Kubernetes Access
+aws eks update-kubeconfig --region us-east-1 --name myeks-1
+kubectl get nodes
+
+✅ 🔍 6. Check Pods
+kubectl get pods
+
+✅ 🔍 7. Check Service
+kubectl get svc
+
+✅ 🔍 9. Check Terraform State
+
+Go to Terraform folder:
+
+cd nginx-myeks/Tform
+terraform state list
+
+🔥 Quick All-in-One Check Script
+echo "🔹 Cluster:"
+aws eks list-clusters --region us-east-1
+
+echo "🔹 Nodegroups:"
+aws eks list-nodegroups --cluster-name myeks-1 --region us-east-1
+
+echo "🔹 EC2:"
+aws ec2 describe-instances --filters "Name=tag:eks:cluster-name,Values=myeks-1" --region us-east-1
+
+echo "🔹 ECR:"
+aws ecr describe-repositories --region us-east-1
+
+echo "🔹 Kubernetes:"
+kubectl get nodes || echo "❌ kubectl failed"
+
+--------------------------------
+To delete all resources
+-----------------------------
+
+🔧STEP 1: Verify AWS identity
+aws sts get-caller-identity
+
+🔧STEP 2: Delete ALL nodegroups
+aws eks list-nodegroups \
+--cluster-name myeks-1 \
+--region us-east-1
+
+🔧List nodegroups
+aws eks list-nodegroups \
+--cluster-name myeks-1 \
+--region us-east-1
+
+🔧 STEP 2: Delete ALL nodegroups
+for ng in $(aws eks list-nodegroups \
+--cluster-name myeks-1 \
+--region us-east-1 \
+--query 'nodegroups[]' \
+--output text); do
+  echo "Deleting $ng"
+  aws eks delete-nodegroup \
+  --cluster-name myeks-1 \
+  --nodegroup-name $ng \
+  --region us-east-1
+done
+
+-> Wait until deleted
+aws eks list-nodegroups \
+--cluster-name myeks-1 \
+--region us-east-1
+
+👉 Output must be:
+
+[]
+
+🔧 STEP 3: Delete EKS cluster
+aws eks delete-cluster \
+--name myeks-1 \
+--region us-east-1
+
+🔧 STEP 4: Delete ECR repository
+List repos:
+aws ecr describe-repositories --region us-east-1
+
+Delete repo
+aws ecr delete-repository \
+--repository-name nginx \
+--region us-east-1 \
+--force
+
+🔧 STEP 5: Cleanup Terraform
+cd nginx-myeks/Tform
+
+Destroy infra
+terraform destroy -auto-approve
+
+Remove local files
+rm -rf .terraform*
+rm -f terraform.tfstate*
+
+🔧 STEP 6: Remove kubeconfig
+rm -rf ~/.kube/config
+
+🔧 STEP 7: Remove Docker images
+docker rmi nginx -f
+
+🔧 STEP 8: Remove AWS credentials
+rm -rf ~/.aws/credentials
+rm -rf ~/.aws/config
+
+✅ Final One-Line Cleanup Script
+aws eks list-nodegroups --cluster-name myeks-1 --region us-east-1 --query 'nodegroups[]' --output text | xargs -I {} aws eks delete-nodegroup --cluster-name myeks-1 --nodegroup-name {} --region us-east-1
+
+aws eks delete-cluster --name myeks-1 --region us-east-1
+
+aws ecr delete-repository --repository-name nginx --region us-east-1 --force
