@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_REGION = "us-east-1"
-        CLUSTER_NAME = "myeks-2"
+        CLUSTER_NAME = "myeks-1"
         ACCOUNT_ID = "652942059461"
         IMAGE_NAME = "nginx"
     }
