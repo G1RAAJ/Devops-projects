@@ -63,7 +63,7 @@ resource "null_resource" "kubeconfig" {
 }
 
 # -------------------------------
-# aws-auth FIX (CRITICAL)
+# aws-auth ConfigMAP
 # -------------------------------
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
