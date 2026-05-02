@@ -31,10 +31,10 @@ module "eks" {
   cluster_version = "1.30"
 
   # 👉 UPDATE THESE WITH YOUR VALUES
-  vpc_id     = "vpc-xxxxxxxx"
+  vpc_id     = "vpc-09a23ce107252dc4b"
   subnet_ids = [
-    "subnet-xxxxxxxx",
-    "subnet-yyyyyyyy"
+    "subnet-04a75877b20cf9bf4",
+    "subnet-079b66fb0be7efc65"
   ]
 
   enable_irsa = true
