@@ -6,10 +6,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.25"
-    }
   }
 }
 
@@ -17,7 +13,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# Get current IAM identity
 data "aws_caller_identity" "current" {}
 
 # -------------------------------
@@ -28,76 +23,35 @@ module "eks" {
   version = "19.21.0"
 
   cluster_name    = "myeks-1"
-  cluster_version = "1.30"
+  cluster_version = "1.29"
 
-  # 👉 UPDATE THESE WITH YOUR VALUES
-  vpc_id     = "vpc-09a23ce107252dc4b"
-  subnet_ids = ["subnet-04a75877b20cf9bf4", "subnet-079b66fb0be7efc65"]
+  vpc_id     = "vpc-REPLACE"             # 🔴 change
+  subnet_ids = ["subnet-AAA", "subnet-BBB"]  # 🔴 change (2 subnets, different AZ)
 
+  # 🔥 IMPORTANT (fix your previous network issue)
   cluster_endpoint_public_access  = true
   cluster_endpoint_private_access = false
 
   enable_irsa = true
 
-  # Managed Node Group
+  # 🔥 Node group (free-tier safe)
   eks_managed_node_groups = {
     default = {
-      desired_size = 2
-      min_size     = 1
-      max_size     = 2
-
-      instance_types = ["t3.small"]
+      desired_size   = 2
+      min_size       = 1
+      max_size       = 2
+      instance_types = ["t2.micro"]
     }
   }
-}
 
-# -------------------------------
-# KUBECONFIG SETUP
-# -------------------------------
-resource "null_resource" "kubeconfig" {
-  depends_on = [module.eks]
+  # 🔥 THIS FIXES YOUR AUTH ISSUE (NO kubernetes provider needed)
+  manage_aws_auth_configmap = true
 
-  provisioner "local-exec" {
-    command = "aws eks update-kubeconfig --region us-east-1 --name myeks-1"
-  }
-}
-
-# -------------------------------
-# aws-auth ConfigMAP
-# -------------------------------
-provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    args = [
-      "eks",
-      "get-token",
-      "--cluster-name",
-      "myeks-1",
-      "--region",
-      "us-east-1"
-    ]
-  }
-}
-
-resource "kubernetes_config_map_v1" "aws_auth" {
-  depends_on = [module.eks]
-
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
-
-  data = {
-    mapRoles = yamlencode([
-      {
-        rolearn  = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/myeks-1-role"
-        username = "jenkins"
-        groups   = ["system:masters"]
-      }
-    ])
-  }
+  aws_auth_roles = [
+    {
+      rolearn  = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/myeks-1-role"
+      username = "jenkins"
+      groups   = ["system:masters"]
+    }
+  ]
 }
