@@ -25,8 +25,8 @@ module "eks" {
   cluster_name    = "myeks-1"
   cluster_version = "1.29"
 
-  vpc_id     = "vpc-REPLACE"             # 🔴 change
-  subnet_ids = ["subnet-AAA", "subnet-BBB"]  # 🔴 change (2 subnets, different AZ)
+  vpc_id     = "vpc-09a23ce107252dc4b"             # 🔴 change
+  subnet_ids = ["subnet-04a75877b20cf9bf4", "subnet-079b66fb0be7efc65"]  # 🔴 change (2 subnets, different AZ)
 
   # 🔥 IMPORTANT (fix your previous network issue)
   cluster_endpoint_public_access  = true
