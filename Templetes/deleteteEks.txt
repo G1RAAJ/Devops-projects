@@ -1,0 +1,76 @@
+To delete all resources
+-----------------------------
+
+🔧STEP 1: Verify AWS identity
+aws sts get-caller-identity
+
+🔧STEP 2: Delete ALL nodegroups
+List nodegroups
+aws eks list-nodegroups \
+--cluster-name myeks-1 \
+--region us-east-1
+
+🔧 STEP 2: Delete ALL nodegroups
+for ng in $(aws eks list-nodegroups \
+--cluster-name myeks-1 \
+--region us-east-1 \
+--query 'nodegroups[]' \
+--output text); do
+  echo "Deleting $ng"
+  aws eks delete-nodegroup \
+  --cluster-name myeks-1 \
+  --nodegroup-name $ng \
+  --region us-east-1
+done
+
+-> Wait until deleted
+aws eks list-nodegroups \
+--cluster-name myeks-1 \
+--region us-east-1
+
+👉 Output must be:
+
+[]
+
+🔧 STEP 3: Delete EKS cluster
+aws eks delete-cluster \
+--name myeks-1 \
+--region us-east-1
+
+🔧 STEP 4: Delete ECR repository
+List repos:
+aws ecr describe-repositories --region us-east-1
+
+Delete repo
+aws ecr delete-repository \
+--repository-name nginx \
+--region us-east-1 \
+--force
+
+🔧 STEP 5: Cleanup Terraform
+cd nginx-myeks/Tform
+
+Destroy infra
+terraform destroy -auto-approve
+
+Remove local files
+rm -rf .terraform*
+rm -f terraform.tfstate*
+
+🔧 STEP 6: Remove kubeconfig
+rm -rf ~/.kube/config
+
+🔧 STEP 7: Remove Docker images
+docker rmi nginx -f
+
+🔧 STEP 8: Remove AWS credentials
+rm -rf ~/.aws/credentials
+rm -rf ~/.aws/config
+
+✅ Final One-Line Cleanup Script
+aws eks list-nodegroups --cluster-name myeks-1 --region us-east-1 --query 'nodegroups[]' --output text | xargs -I {} aws eks delete-nodegroup --cluster-name myeks-1 --nodegroup-name {} --region us-east-1
+
+aws eks delete-cluster --name myeks-1 --region us-east-1
+
+aws ecr delete-repository --repository-name nginx --region us-east-1 --force
+
