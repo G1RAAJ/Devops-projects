@@ -1,3 +1,124 @@
+Jenkins Built in node memory configuration
+--------------------------------------------
+Free Swap Space 2GB
+⚙️ PART 1 — Set 2GB Swap
+1️⃣ Remove existing swap (if any)
+sudo swapoff -a
+sudo rm -f /swapfile
+
+2️⃣ Create new 2GB swap
+sudo fallocate -l 2G /swapfile
+
+3️⃣ Set permissions
+sudo chmod 600 /swapfile
+
+4️⃣ Create swap area
+sudo mkswap /swapfile
+
+5️⃣ Enable swap
+sudo swapon /swapfile
+
+6️⃣ Verify
+free -h
+
+7️⃣ Make it permanent
+echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
+
+⚙️ PART 2 — Set /tmp to 2GB
+1️⃣ Check current mount
+mount | grep /tmp
+
+2️⃣ Edit fstab
+sudo nano /etc/fstab
+
+👉Add this line:
+tmpfs /tmp tmpfs defaults,size=2G 0 0
+
+to save it, press Ctrl+x, y and m
+
+3️⃣ Apply changes
+sudo mount -o remount /tmp
+
+4️⃣ Verify
+df -h /tmp
+
+set each 1GB as required on jenkins/nodes/Built-in-node/configure
+Apply and Save
+
+--------------------------------------------------------
+To check all resources whether they are created or not
+-------------------------------------------------------
+
+✔ EKS cluster
+✔ Nodegroups
+✔ EC2 instances
+✔ ECR repository
+✔ Kubernetes (pods/services)
+✔ Terraform state
+
+✅ 🔍 1. Check EKS Cluster
+aws eks list-clusters --region us-east-1
+
+aws eks describe-cluster \
+--name myeks-1 \
+--region us-east-1 \
+--query "cluster.status"
+
+✅ 🔍 2. Check Nodegroups
+aws eks list-nodegroups \
+--cluster-name myeks-1 \
+--region us-east-1
+
+Detailed status
+aws eks describe-nodegroup \
+--cluster-name myeks-1 \
+--nodegroup-name default \
+--region us-east-1 \
+--query "nodegroup.status"
+
+✅ 🔍 3. Check EC2 Instances (Worker Nodes)
+aws ec2 describe-instances \
+--filters "Name=tag:eks:cluster-name,Values=myeks-1" \
+--query "Reservations[*].Instances[*].InstanceId" \
+--region us-east-1
+
+✅ 🔍 4. Check ECR Repository
+aws ecr describe-repositories --region us-east-1
+
+✅ 🔍 5. Check Kubernetes Access
+aws eks update-kubeconfig --region us-east-1 --name myeks-1
+kubectl get nodes
+
+✅ 🔍 6. Check Pods
+kubectl get pods
+
+✅ 🔍 7. Check Service
+kubectl get svc
+
+✅ 🔍 9. Check Terraform State
+
+Go to Terraform folder:
+
+cd nginx-myeks/Tform
+terraform state list
+
+🔥 Quick All-in-One Check Script
+echo "🔹 Cluster:"
+aws eks list-clusters --region us-east-1
+
+echo "🔹 Nodegroups:"
+aws eks list-nodegroups --cluster-name myeks-1 --region us-east-1
+
+echo "🔹 EC2:"
+aws ec2 describe-instances --filters "Name=tag:eks:cluster-name,Values=myeks-1" --region us-east-1
+
+echo "🔹 ECR:"
+aws ecr describe-repositories --region us-east-1
+
+echo "🔹 Kubernetes:"
+kubectl get nodes || echo "❌ kubectl failed"
+
+------------------------------
 To delete all resources
 -----------------------------
 
