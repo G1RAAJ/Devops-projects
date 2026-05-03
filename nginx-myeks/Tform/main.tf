@@ -23,7 +23,7 @@ module "eks" {
   version = "19.21.0"
 
   cluster_name    = "myeks-1"
-  cluster_version = "1.29"
+  cluster_version = "1.31"
 
   vpc_id     = "vpc-09a23ce107252dc4b"             # 🔴 change
   subnet_ids = ["subnet-04a75877b20cf9bf4", "subnet-079b66fb0be7efc65"]  # 🔴 change (2 subnets, different AZ)
