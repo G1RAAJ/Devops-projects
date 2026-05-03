@@ -1,0 +1,124 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-east-1"
+        CLUSTER_NAME = "myeks-1"
+        ACCOUNT_ID = "652942059461"
+        IMAGE_NAME = "nginx"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+               git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('nginx-myeks') {
+                    sh '''
+                    docker build -t $IMAGE_NAME .
+                    '''
+                }
+            }
+        }
+
+        stage('Create ECR Repo') {
+            steps {
+                sh '''
+                aws ecr describe-repositories \
+                --repository-names $IMAGE_NAME \
+                --region $AWS_REGION >/dev/null 2>&1 || \
+                aws ecr create-repository \
+                --repository-name $IMAGE_NAME \
+                --region $AWS_REGION
+                '''
+            }
+        }
+
+        stage('ECR Login') {
+            steps {
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION \
+                | docker login --username AWS \
+                --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                '''
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                dir('nginx-myeks') {
+                    sh '''
+                    docker tag $IMAGE_NAME \
+                    $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+
+                    docker push \
+                    $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('nginx-myeks/Tform') {
+                    sh '''
+                    terraform init
+                    terraform apply -auto-approve
+                    '''
+                }
+            }
+        }
+
+        stage('Configure Kubeconfig') {
+            steps {
+                sh '''
+                aws eks update-kubeconfig \
+                --region $AWS_REGION \
+                --name $CLUSTER_NAME
+                '''
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                dir('nginx-myeks') {
+                    sh '''
+                    set -e
+
+                    echo "Checking cluster"
+                    kubectl get nodes
+
+                    echo "Deploying app"
+                    export ACCOUNT_ID=$ACCOUNT_ID
+
+                    envsubst < K8s/deployment.yaml | kubectl apply -f -
+                    kubectl apply -f K8s/service.yaml
+                    '''
+                }
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                sh '''
+                kubectl get pods
+                kubectl get svc
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "SUCCESS"
+        }
+        failure {
+            echo "FAILED"
+        }
+    }
+}
