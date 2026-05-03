@@ -69,8 +69,58 @@ rm -rf ~/.aws/config
 
 ✅ Final One-Line Cleanup Script
 aws eks list-nodegroups --cluster-name myeks-1 --region us-east-1 --query 'nodegroups[]' --output text | xargs -I {} aws eks delete-nodegroup --cluster-name myeks-1 --nodegroup-name {} --region us-east-1
-
 aws eks delete-cluster --name myeks-1 --region us-east-1
-
 aws ecr delete-repository --repository-name nginx --region us-east-1 --force
+
+🔧 STEP 1: To clear data on terrform history
+rm -rf .terraform
+rm -f .terraform.lock.hcl
+rm -f terraform.tfstate*
+
+🔧 STEP 1: Get REAL VPC & Subnets
+aws ec2 describe-vpcs --region us-east-1
+aws ec2 describe-subnets --region us-east-1
+
+🔧 STEP 3: CLEAN OLD RESOURCES
+Delete KMS alias
+aws kms list-aliases --region us-east-1
+
+aws kms delete-alias \
+--alias-name alias/eks/myeks-1 \
+--region us-east-1
+
+Delete CloudWatch log group
+aws logs delete-log-group \
+--log-group-name /aws/eks/myeks-1/cluster \
+--region us-east-1
+
+🔧 STEP 4: Clean Terraform cache
+rm -rf .terraform
+rm -f .terraform.lock.hcl
+rm -f terraform.tfstate*
+
+🔧 STEP 5: Reinitialize properly
+terraform init -upgrade
+
+🔧 STEP 6: Apply again
+terraform apply -auto-approve
+
+🔧 Step 1: Check how many subnets exist
+aws ec2 describe-subnets --region us-east-1 --query "Subnets[*].SubnetId"
+
+🔧 Step 3: Create 2 subnets (different AZs)
+Subnet 1
+aws ec2 create-subnet \
+--vpc-id vpc-xxxxxxx \
+--cidr-block 10.0.1.0/24 \
+--availability-zone us-east-1a
+
+Subnet 2
+aws ec2 create-subnet \
+--vpc-id vpc-xxxxxxx \
+--cidr-block 10.0.2.0/24 \
+--availability-zone us-east-1b
+
+🔧 Step 4: Verify
+aws ec2 describe-subnets --region us-east-1
 
