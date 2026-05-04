@@ -23,6 +23,10 @@ module "eks" {
   vpc_id     = var.vpc_id
   subnet_ids = var.subnet_ids
 
+  cluster_endpoint_public_access  = true
+  cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]
+  enable_cluster_creator_admin_permissions = true
+
   enable_irsa = true
 
   eks_managed_node_groups = {
@@ -31,7 +35,7 @@ module "eks" {
       max_size     = 3
       min_size     = 1
 
-      instance_types = ["m7i-flex.large"]
+      instance_types = ["AL2_x86_64"]
     }
   }
 
