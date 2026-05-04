@@ -2,7 +2,7 @@
 FROM node:16-alpine
 
 # Set working directory
-WORKDIR /app
+WORKDIR sockshop/docker/frontend
 
 # Copy only package files first (for caching)
 COPY package*.json ./
