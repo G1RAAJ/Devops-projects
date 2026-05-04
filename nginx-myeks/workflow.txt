@@ -131,6 +131,18 @@ kubectl get nodes || echo "❌ kubectl failed"
 --------------------------------
 To delete all resources
 -----------------------------
+To delete tools data after uninstall individual or all
+---------------------------------------------------------
+sudo rm -f /usr/local/bin/kubectl
+sudo rm -f /usr/local/bin/eksctl
+sudo rm -f /usr/local/bin/terraform
+sudo rm -f /usr/local/bin/aws
+
+👉 Verify:
+which kubectl
+which eksctl
+which terraform
+which aws
 
 🔧STEP 1: Verify AWS identity
 aws sts get-caller-identity
