@@ -13,7 +13,7 @@ pipeline {
 
         stage('Clone Repo') {
             steps {
-                git 'https://github.com/your-repo/sockshop-devops.git'
+                git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
             }
         }
 
@@ -22,9 +22,11 @@ pipeline {
         // -------------------------------
         stage('Terraform Apply') {
             steps {
-                dir('terraform') {
+                dir('sockshop/terraform') {
                     sh '''
                     terraform init
+                    terraform validate
+                    terraform plan
                     terraform apply -auto-approve -var-file=terraform.tfvars
                     '''
                 }
@@ -52,7 +54,7 @@ pipeline {
         // -------------------------------
         stage('Build Docker') {
             steps {
-                sh 'docker build -t frontend ./docker/frontend'
+                sh 'docker build -t frontend ./sockshop/docker/frontend'
             }
         }
 
@@ -100,7 +102,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                helm upgrade --install sockshop ./helm/sockshop \
+                helm upgrade --install sockshop ./sockshop/helm/sockshop \
                 --set image.repository=$ECR_REPO_URI \
                 --set image.tag=latest
                 '''
