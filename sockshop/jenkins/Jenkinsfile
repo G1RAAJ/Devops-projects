@@ -16,7 +16,17 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
             }
         }
-
+        
+        stage('Debug Workspace') {
+            steps {
+                sh '''
+                pwd
+                ls -l
+                ls -l app
+                '''
+            }
+        }
+        
         // -------------------------------
         // Terraform (Infra)
         // -------------------------------
