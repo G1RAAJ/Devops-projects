@@ -1,0 +1,110 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-east-2"
+        ACCOUNT_ID = "652942059461"
+        ECR_REPO_NAME = "sockshop/frontend"
+        ECR_REPO_URI = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
+        CLUSTER_NAME = "sockshop-cluster"
+    }
+
+    stages {
+
+        stage('Clone Repo') {
+            steps {
+                git 'https://github.com/your-repo/sockshop-devops.git'
+            }
+        }
+
+        // -------------------------------
+        // Terraform (Infra)
+        // -------------------------------
+        stage('Terraform Apply') {
+            steps {
+                dir('terraform') {
+                    sh '''
+                    terraform init
+                    terraform apply -auto-approve -var-file=terraform.tfvars
+                    '''
+                }
+            }
+        }
+
+        // -------------------------------
+        // Ensure ECR Repo Exists
+        // -------------------------------
+        stage('Create ECR Repo if Not Exists') {
+            steps {
+                sh '''
+                aws ecr describe-repositories \
+                --repository-names $ECR_REPO_NAME \
+                --region $AWS_REGION || \
+                aws ecr create-repository \
+                --repository-name $ECR_REPO_NAME \
+                --region $AWS_REGION
+                '''
+            }
+        }
+
+        // -------------------------------
+        // Build Docker Image
+        // -------------------------------
+        stage('Build Docker') {
+            steps {
+                sh 'docker build -t frontend ./docker/frontend'
+            }
+        }
+
+        // -------------------------------
+        // Login to ECR
+        // -------------------------------
+        stage('Login to ECR') {
+            steps {
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS \
+                --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                '''
+            }
+        }
+
+        // -------------------------------
+        // Push Image to ECR
+        // -------------------------------
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                docker tag frontend:latest $ECR_REPO_URI:latest
+                docker push $ECR_REPO_URI:latest
+                '''
+            }
+        }
+
+        // -------------------------------
+        // Configure kubectl
+        // -------------------------------
+        stage('Update kubeconfig') {
+            steps {
+                sh '''
+                aws eks update-kubeconfig \
+                --region $AWS_REGION \
+                --name $CLUSTER_NAME
+                '''
+            }
+        }
+
+        // -------------------------------
+        // Deploy to EKS using Helm
+        // -------------------------------
+        stage('Deploy') {
+            steps {
+                sh '''
+                helm upgrade --install sockshop ./helm/sockshop \
+                --set image.repository=$ECR_REPO_URI \
+                --set image.tag=latest
+                '''
+            }
+        }
+    }
+}

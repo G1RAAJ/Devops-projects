@@ -1,0 +1,10 @@
+image:
+  repository: 652942059461.dkr.ecr.us-east-1.amazonaws.com/frontend
+  tag: latest
+
+replicaCount: 2
+
+service:
+  type: LoadBalancer
+  port: 80
+  
