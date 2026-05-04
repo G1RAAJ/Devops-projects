@@ -204,9 +204,7 @@ rm -rf ~/.aws/config
 
 ✅ Final One-Line Cleanup Script
 aws eks list-nodegroups --cluster-name myeks-1 --region us-east-1 --query 'nodegroups[]' --output text | xargs -I {} aws eks delete-nodegroup --cluster-name myeks-1 --nodegroup-name {} --region us-east-1
-
 aws eks delete-cluster --name myeks-1 --region us-east-1
-
 aws ecr delete-repository --repository-name nginx --region us-east-1 --force
 
 
