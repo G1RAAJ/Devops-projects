@@ -50,4 +50,46 @@ sockshop/
 4. Access app:
    kubectl get svc frontend
 
+-----------------------------------
+Built-in-Node for Jenkins
+------------------------------------
+⚙️ PART 1 — Ensure 1GB Free Swap
+1️⃣ Check
+free -h
+
+2️⃣ Create/resize swap to 2GB (recommended)
+sudo swapoff -a
+sudo rm -f /swapfile
+
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+3️⃣ Make permanent
+echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
+
+4️⃣ Verify
+free -h
+
+⚙️ PART 2 — Ensure 1GB Free Temp Space (/tmp)
+1️⃣ Check
+df -h /tmp
+
+2️⃣ Quick cleanup
+sudo rm -rf /tmp/*
+
+3️⃣ Increase /tmp size to 2GB (permanent)
+sudo nano /etc/fstab
+
+Add:
+tmpfs /tmp tmpfs defaults,size=2G 0 0
+
+Apply:
+sudo mount -o remount /tmp
+
+4️⃣ Verify
+df -h /tmp
+
+
 
