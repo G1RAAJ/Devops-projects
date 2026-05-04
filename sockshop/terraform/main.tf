@@ -35,7 +35,7 @@ module "eks" {
       max_size     = 3
       min_size     = 1
 
-      instance_types = ["AL2_x86_64"]
+      instance_types = ["m7i-flex.large"]
     }
   }
 
