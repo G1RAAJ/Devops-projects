@@ -2,7 +2,7 @@ FROM node:16-alpine
 
 WORKDIR /app
 
-COPY . .
+COPY ../../app/microservices-demo/src/front-end .
 
 RUN npm install
 
