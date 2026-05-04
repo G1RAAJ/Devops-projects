@@ -1,6 +1,6 @@
 region          = "us-east-2"
 cluster_name    = "sockshop-cluster"
-cluster_version = "1.28"
+cluster_version = "1.30"
 
 vpc_id = "vpc-0334865e1b2cd5b54"
 
