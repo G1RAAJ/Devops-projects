@@ -15,41 +15,45 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
             }
-        }   
-        
-        // -------------Terraform------------------
+        }
+
+        // -------- Terraform --------
         stage('Terraform Apply') {
             steps {
                 dir('sockshop/terraform') {
                     sh '''
-                    terraform init
+                    rm -rf .terraform .terraform.lock.hcl
+                    terraform init -upgrade
                     terraform apply -auto-approve -var-file=terraform.tfvars
                     '''
                 }
             }
         }
 
-        // ------------Ensure ECR Repo--------------
+        // -------- Create ECR Repo (Safe) --------
         stage('Create ECR Repo') {
             steps {
                 sh '''
+                aws ecr describe-repositories \
+                --repository-names $ECR_REPO_NAME \
+                --region $AWS_REGION || \
                 aws ecr create-repository \
                 --repository-name $ECR_REPO_NAME \
                 --region $AWS_REGION
                 '''
             }
         }
-      
-        // -------------Build Docker Image----------
+
+        // -------- Build Docker --------
         stage('Build Docker') {
             steps {
                 sh '''
-                docker build -t sockshop ./sockshop/docker/frontend
+                docker build -t frontend ./sockshop/microservices-demo/src/front-end
                 '''
             }
         }
-        
-        // ------------ Login to ECR---------------
+
+        // -------- Login to ECR --------
         stage('Login to ECR') {
             steps {
                 sh '''
@@ -59,8 +63,8 @@ pipeline {
                 '''
             }
         }
-   
-        // ------------Push Image to ECR-----------
+
+        // -------- Push to ECR --------
         stage('Push to ECR') {
             steps {
                 sh '''
@@ -69,8 +73,8 @@ pipeline {
                 '''
             }
         }
-        
-        // ------------Configure kubectl-----------
+
+        // -------- Update kubeconfig --------
         stage('Update kubeconfig') {
             steps {
                 sh '''
@@ -80,13 +84,13 @@ pipeline {
                 '''
             }
         }
- 
-        // -------Deploy to EKS using Helm---------
+
+        // -------- Deploy --------
         stage('Deploy') {
             steps {
                 sh '''
                 helm upgrade --install sockshop ./sockshop/helm/sockshop \
-                --set image.repository=$ECR_REPO_URL \
+                --set image.repository=$ECR_REPO_URI \
                 --set image.tag=latest
                 '''
             }
