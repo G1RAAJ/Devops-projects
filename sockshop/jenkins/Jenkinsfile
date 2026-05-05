@@ -4,7 +4,7 @@ pipeline {
     environment {
         AWS_REGION = "us-east-2"
         ACCOUNT_ID = "652942059461"
-        ECR_REPO_NAME = "sockshop/frontend"
+        ECR_REPO_NAME = "sockshop"
         ECR_REPO_URI = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
         CLUSTER_NAME = "sockshop-cluster"
     }
@@ -15,54 +15,41 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
             }
-        }
+        }   
         
-        // -------------------------------
-        // Terraform (Infra)
-        // -------------------------------
+        // -------------Terraform------------------
         stage('Terraform Apply') {
             steps {
                 dir('sockshop/terraform') {
                     sh '''
-                    terraform init -upgrade -reconfigure
-                    terraform validate
-                    terraform plan
+                    terraform init
                     terraform apply -auto-approve -var-file=terraform.tfvars
                     '''
                 }
             }
         }
 
-        // -------------------------------
-        // Ensure ECR Repo Exists
-        // -------------------------------
-        stage('Create ECR Repo if Not Exists') {
+        // ------------Ensure ECR Repo--------------
+        stage('Create ECR Repo') {
             steps {
                 sh '''
-                aws ecr describe-repositories \
-                --repository-names $ECR_REPO_NAME \
-                --region $AWS_REGION || \
                 aws ecr create-repository \
                 --repository-name $ECR_REPO_NAME \
                 --region $AWS_REGION
                 '''
             }
         }
-
-        // -------------------------------
-        // Build Docker Image
-        // -------------------------------
+      
+        // -------------Build Docker Image----------
         stage('Build Docker') {
             steps {
                 sh '''
-                docker build -t frontend ./sockshop/docker/frontend
+                docker build -t sockshop ./sockshop/docker/frontend
                 '''
             }
         }
-
-        // -------------------------------
-        // Login to ECR
-        // -------------------------------
+        
+        // ------------ Login to ECR---------------
         stage('Login to ECR') {
             steps {
                 sh '''
@@ -72,10 +59,8 @@ pipeline {
                 '''
             }
         }
-
-        // -------------------------------
-        // Push Image to ECR
-        // -------------------------------
+   
+        // ------------Push Image to ECR-----------
         stage('Push to ECR') {
             steps {
                 sh '''
@@ -84,10 +69,8 @@ pipeline {
                 '''
             }
         }
-
-        // -------------------------------
-        // Configure kubectl
-        // -------------------------------
+        
+        // ------------Configure kubectl-----------
         stage('Update kubeconfig') {
             steps {
                 sh '''
@@ -97,15 +80,13 @@ pipeline {
                 '''
             }
         }
-
-        // -------------------------------
-        // Deploy to EKS using Helm
-        // -------------------------------
+ 
+        // -------Deploy to EKS using Helm---------
         stage('Deploy') {
             steps {
                 sh '''
                 helm upgrade --install sockshop ./sockshop/helm/sockshop \
-                --set image.repository=$ECR_REPO_URI \
+                --set image.repository=$ECR_REPO_URL \
                 --set image.tag=latest
                 '''
             }
