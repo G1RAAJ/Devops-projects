@@ -31,7 +31,6 @@ pipeline {
 
                     terraform init -upgrade
                     terraform validate
-                    cd webapp-project/terraform
                     terraform apply -auto-approve -var-file=terraform.tfvars
                     '''
                 }
