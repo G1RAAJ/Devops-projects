@@ -13,8 +13,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                url: 'https://github.com/your-repo/devops-webapp-project.git'
+                git branch: 'main', url: 'https://github.com/your-repo/devops-webapp-project.git'
             }
         }
 
