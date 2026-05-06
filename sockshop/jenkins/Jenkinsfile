@@ -48,7 +48,7 @@ pipeline {
         stage('Build Docker') {
             steps {
                 sh '''
-                docker build -t frontend ./sockshop/microservices-demo/src/front-end
+                docker build -t frontend ./microservices-demo/src/frontend
                 '''
             }
         }
