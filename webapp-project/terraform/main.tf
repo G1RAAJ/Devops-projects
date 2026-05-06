@@ -25,6 +25,7 @@ module "eks" {
 
   # Enable public API access
   cluster_endpoint_public_access = true
+  cluster_endpoint_private_access = false
 
   # Optional but recommended
   enable_irsa = true
