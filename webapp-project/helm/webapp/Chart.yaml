@@ -1,0 +1,11 @@
+apiVersion: v2
+name: webapp
+version: 0.1.0
+description: A Helm chart for Kubernetes
+type: application
+appVersion: "1.0"
+maintainers:
+  - name: Jeevan Raju
+    email: Jeevanraju@example.com
+    url: https://example.com
+

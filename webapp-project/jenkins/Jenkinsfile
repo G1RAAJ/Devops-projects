@@ -1,0 +1,94 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-east-2"
+        ACCOUNT_ID = "652942059461"
+        ECR_REPO_NAME = "webapp"
+        ECR_REPO_URI = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
+        CLUSTER_NAME = "webapp-cluster"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                url: 'https://github.com/your-repo/devops-webapp-project.git'
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('terraform') {
+                    sh '''
+                    terraform init -upgrade
+                    terraform apply -auto-approve -var-file=terraform.tfvars
+                    '''
+                }
+            }
+        }
+
+        stage('Create ECR Repo') {
+            steps {
+                sh '''
+                aws ecr describe-repositories \
+                --repository-names $ECR_REPO_NAME \
+                --region $AWS_REGION || \
+                aws ecr create-repository \
+                --repository-name $ECR_REPO_NAME \
+                --region $AWS_REGION
+                '''
+            }
+        }
+
+        stage('Build Docker') {
+            steps {
+                dir('app') {
+                    sh '''
+                    docker build -t webapp .
+                    '''
+                }
+            }
+        }
+
+        stage('Login to ECR') {
+            steps {
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS \
+                --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                '''
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                docker tag webapp:latest $ECR_REPO_URI:latest
+                docker push $ECR_REPO_URI:latest
+                '''
+            }
+        }
+
+        stage('Update kubeconfig') {
+            steps {
+                sh '''
+                aws eks update-kubeconfig \
+                --region $AWS_REGION \
+                --name $CLUSTER_NAME
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                helm upgrade --install webapp ./helm/webapp \
+                --set image.repository=$ECR_REPO_URI \
+                --set image.tag=latest
+                '''
+            }
+        }
+    }
+}
