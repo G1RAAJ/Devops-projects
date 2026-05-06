@@ -19,8 +19,7 @@ pipeline {
         // -----------------------------
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                url: 'https://github.com/YOUR_GITHUB_USERNAME/devops-webapp-project.git'
+               git branch: 'main', url: 'https://github.com/your-repo/devops-webapp-project.git'
             }
         }
 
@@ -34,9 +33,7 @@ pipeline {
                     rm -rf .terraform .terraform.lock.hcl
 
                     terraform init -upgrade
-
                     terraform validate
-
                     terraform apply -auto-approve -var-file=terraform.tfvars
                     '''
                 }
@@ -136,9 +133,7 @@ pipeline {
             steps {
                 sh '''
                 kubectl get nodes
-
                 kubectl get pods
-
                 kubectl get svc
                 '''
             }
