@@ -4,11 +4,8 @@ pipeline {
     environment {
         AWS_REGION = "us-east-2"
         ACCOUNT_ID = "652942059461"
-
         ECR_REPO_NAME = "webapp"
-
         ECR_REPO_URI = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
-
         CLUSTER_NAME = "webapp-cluster"
     }
 
@@ -94,7 +91,6 @@ pipeline {
             steps {
                 sh '''
                 docker tag webapp:latest $ECR_REPO_URI:latest
-
                 docker push $ECR_REPO_URI:latest
                 '''
             }
