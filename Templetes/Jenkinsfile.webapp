@@ -1,0 +1,99 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-east-2"
+        ACCOUNT_ID = "652942059461"
+        ECR_REPO_NAME = "sockshop"
+        ECR_REPO_URI = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
+        CLUSTER_NAME = "sockshop-cluster"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
+            }
+        }
+
+        // -------- Terraform --------
+        stage('Terraform Apply') {
+            steps {
+                dir('sockshop/terraform') {
+                    sh '''
+                    rm -rf .terraform .terraform.lock.hcl
+                    terraform init -upgrade
+                    terraform apply -auto-approve -var-file=terraform.tfvars
+                    '''
+                }
+            }
+        }
+
+        // -------- Create ECR Repo (Safe) --------
+        stage('Create ECR Repo') {
+            steps {
+                sh '''
+                aws ecr describe-repositories \
+                --repository-names $ECR_REPO_NAME \
+                --region $AWS_REGION || \
+                aws ecr create-repository \
+                --repository-name $ECR_REPO_NAME \
+                --region $AWS_REGION
+                '''
+            }
+        }
+
+        // -------- Build Docker --------
+        stage('Build Docker') {
+            steps {
+                sh '''
+                docker build -t frontend ./G1RAAJ/microservices-demo/src/frontend
+                '''
+            }
+        }
+
+        // -------- Login to ECR --------
+        stage('Login to ECR') {
+            steps {
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS \
+                --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                '''
+            }
+        }
+
+        // -------- Push to ECR --------
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                docker tag frontend:latest $ECR_REPO_URI:latest
+                docker push $ECR_REPO_URI:latest
+                '''
+            }
+        }
+
+        // -------- Update kubeconfig --------
+        stage('Update kubeconfig') {
+            steps {
+                sh '''
+                aws eks update-kubeconfig \
+                --region $AWS_REGION \
+                --name $CLUSTER_NAME
+                '''
+            }
+        }
+
+        // -------- Deploy --------
+        stage('Deploy') {
+            steps {
+                sh '''
+                helm upgrade --install sockshop ./sockshop/helm/sockshop \
+                --set image.repository=$ECR_REPO_URI \
+                --set image.tag=latest
+                '''
+            }
+        }
+    }
+}
