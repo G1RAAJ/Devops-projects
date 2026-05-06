@@ -4,36 +4,55 @@ pipeline {
     environment {
         AWS_REGION = "us-east-2"
         ACCOUNT_ID = "652942059461"
+
         ECR_REPO_NAME = "webapp"
+
         ECR_REPO_URI = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
+
         CLUSTER_NAME = "webapp-cluster"
     }
 
     stages {
 
+        // -----------------------------
+        // Checkout Repository
+        // -----------------------------
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-repo/devops-webapp-project.git'
+                git branch: 'main',
+                url: 'https://github.com/YOUR_GITHUB_USERNAME/devops-webapp-project.git'
             }
         }
 
+        // -----------------------------
+        // Terraform Apply
+        // -----------------------------
         stage('Terraform Apply') {
             steps {
                 dir('terraform') {
                     sh '''
+                    rm -rf .terraform .terraform.lock.hcl
+
                     terraform init -upgrade
+
+                    terraform validate
+
                     terraform apply -auto-approve -var-file=terraform.tfvars
                     '''
                 }
             }
         }
 
+        // -----------------------------
+        // Create ECR Repository
+        // -----------------------------
         stage('Create ECR Repo') {
             steps {
                 sh '''
                 aws ecr describe-repositories \
                 --repository-names $ECR_REPO_NAME \
                 --region $AWS_REGION || \
+
                 aws ecr create-repository \
                 --repository-name $ECR_REPO_NAME \
                 --region $AWS_REGION
@@ -41,6 +60,9 @@ pipeline {
             }
         }
 
+        // -----------------------------
+        // Build Docker Image
+        // -----------------------------
         stage('Build Docker') {
             steps {
                 dir('app') {
@@ -51,25 +73,39 @@ pipeline {
             }
         }
 
+        // -----------------------------
+        // Login to ECR
+        // -----------------------------
         stage('Login to ECR') {
             steps {
                 sh '''
-                aws ecr get-login-password --region $AWS_REGION | \
-                docker login --username AWS \
-                --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                aws ecr get-login-password \
+                --region $AWS_REGION | \
+
+                docker login \
+                --username AWS \
+                --password-stdin \
+                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
                 '''
             }
         }
 
+        // -----------------------------
+        // Push Docker Image to ECR
+        // -----------------------------
         stage('Push to ECR') {
             steps {
                 sh '''
                 docker tag webapp:latest $ECR_REPO_URI:latest
+
                 docker push $ECR_REPO_URI:latest
                 '''
             }
         }
 
+        // -----------------------------
+        // Update kubeconfig
+        // -----------------------------
         stage('Update kubeconfig') {
             steps {
                 sh '''
@@ -80,6 +116,9 @@ pipeline {
             }
         }
 
+        // -----------------------------
+        // Deploy using Helm
+        // -----------------------------
         stage('Deploy') {
             steps {
                 sh '''
@@ -88,6 +127,35 @@ pipeline {
                 --set image.tag=latest
                 '''
             }
+        }
+
+        // -----------------------------
+        // Verify Deployment
+        // -----------------------------
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                kubectl get nodes
+
+                kubectl get pods
+
+                kubectl get svc
+                '''
+            }
+        }
+    }
+
+    // -----------------------------
+    // Post Actions
+    // -----------------------------
+    post {
+
+        success {
+            echo 'Deployment Successful'
+        }
+
+        failure {
+            echo 'Pipeline Failed'
         }
     }
 }
