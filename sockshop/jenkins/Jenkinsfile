@@ -48,7 +48,7 @@ pipeline {
         stage('Build Docker') {
             steps {
                 sh '''
-                docker build -t frontend ./microservices-demo/src/frontend
+                docker build -t frontend https://github.com/G1RAAJ/microservices-demo.git/src/frontend
                 '''
             }
         }
