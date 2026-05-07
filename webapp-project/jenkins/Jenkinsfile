@@ -42,6 +42,25 @@ pipeline {
             }
         }
 
+        stage('Configure EKS Access') {
+            steps {
+                sh '''
+                // just replace role name
+                aws eks create-access-entry \
+                --cluster-name $CLUSTER_NAME \
+                --principal-arn arn:aws:iam::$ACCOUNT_ID:role/webapp-role \
+                --region $AWS_REGION || true
+        
+                aws eks associate-access-policy \
+                --cluster-name $CLUSTER_NAME \
+                --principal-arn arn:aws:iam::$ACCOUNT_ID:role/webapp-role \
+                --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+                --access-scope type=cluster \
+                --region $AWS_REGION || true
+                '''
+            }
+        }
+
         stage('Create ECR Repo') {
             steps {
                 sh '''
@@ -95,7 +114,6 @@ pipeline {
                 aws eks update-kubeconfig \
                 --region $AWS_REGION \
                 --name $CLUSTER_NAME
-                kubectl get nodes
                 '''
             }
         }
