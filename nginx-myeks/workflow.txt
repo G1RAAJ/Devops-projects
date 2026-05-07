@@ -152,11 +152,6 @@ aws eks list-nodegroups \
 --cluster-name myeks-1 \
 --region us-east-1
 
-🔧List nodegroups
-aws eks list-nodegroups \
---cluster-name myeks-1 \
---region us-east-1
-
 ✅ STEP 2: Delete ALL nodegroups
 for ng in $(aws eks list-nodegroups \
 --cluster-name myeks-1 \
