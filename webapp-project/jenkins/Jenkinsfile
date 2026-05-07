@@ -45,7 +45,6 @@ pipeline {
         stage('Configure EKS Access') {
             steps {
                 sh '''
-                // just replace role name
                 aws eks create-access-entry \
                 --cluster-name $CLUSTER_NAME \
                 --principal-arn arn:aws:iam::$ACCOUNT_ID:role/webapp-role \
