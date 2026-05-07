@@ -11,38 +11,43 @@ pipeline {
 
     stages {
 
-        // -----------------------------
-        // Checkout Repository
-        // -----------------------------
         stage('Checkout') {
             steps {
-               git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
+                git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
             }
         }
 
-        // -----------------------------
-        // Terraform Apply
-        // -----------------------------
+        stage('Debug') {
+            steps {
+                sh '''
+                whoami
+                pwd
+                aws sts get-caller-identity
+                ls
+                ls webapp-project
+                ls webapp-project/terraform
+                '''
+            }
+        }
+
         stage('Terraform Apply') {
             steps {
                 dir('webapp-project/terraform') {
                     sh '''
+                    terraform init -upgrade
+                    terraform validate
                     terraform apply -auto-approve -var-file=terraform.tfvars
                     '''
                 }
             }
         }
 
-        // -----------------------------
-        // Create ECR Repository
-        // -----------------------------
         stage('Create ECR Repo') {
             steps {
                 sh '''
                 aws ecr describe-repositories \
                 --repository-names $ECR_REPO_NAME \
                 --region $AWS_REGION || \
-
                 aws ecr create-repository \
                 --repository-name $ECR_REPO_NAME \
                 --region $AWS_REGION
@@ -50,9 +55,6 @@ pipeline {
             }
         }
 
-        // -----------------------------
-        // Build Docker Image
-        // -----------------------------
         stage('Build Docker') {
             steps {
                 dir('webapp-project/app') {
@@ -63,15 +65,11 @@ pipeline {
             }
         }
 
-        // -----------------------------
-        // Login to ECR
-        // -----------------------------
         stage('Login to ECR') {
             steps {
                 sh '''
                 aws ecr get-login-password \
                 --region $AWS_REGION | \
-
                 docker login \
                 --username AWS \
                 --password-stdin \
@@ -80,9 +78,6 @@ pipeline {
             }
         }
 
-        // -----------------------------
-        // Push Docker Image to ECR
-        // -----------------------------
         stage('Push to ECR') {
             steps {
                 sh '''
@@ -92,35 +87,29 @@ pipeline {
             }
         }
 
-        // -----------------------------
-        // Update kubeconfig
-        // -----------------------------
         stage('Update kubeconfig') {
             steps {
-                sh '''        
+                sh '''
+                mkdir -p ~/.kube
+                rm -f ~/.kube/config
                 aws eks update-kubeconfig \
                 --region $AWS_REGION \
                 --name $CLUSTER_NAME
+                kubectl get nodes
                 '''
             }
         }
-        
-        // -----------------------------
-        // Deploy using Helm
-        // -----------------------------
+
         stage('Deploy') {
             steps {
                 sh '''
-                helm upgrade --install webapp ./helm/webapp \
+                helm upgrade --install webapp ./webapp-project/helm/webapp \
                 --set image.repository=$ECR_REPO_URI \
                 --set image.tag=latest
                 '''
             }
         }
 
-        // -----------------------------
-        // Verify Deployment
-        // -----------------------------
         stage('Verify Deployment') {
             steps {
                 sh '''
@@ -132,11 +121,7 @@ pipeline {
         }
     }
 
-    // -----------------------------
-    // Post Actions
-    // -----------------------------
     post {
-
         success {
             echo 'Deployment Successful'
         }
