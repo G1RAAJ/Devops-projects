@@ -1,0 +1,114 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-east-2"
+        ACCOUNT_ID = "652942059461"
+        ECR_REPO_NAME = "webapp"
+        CLUSTER_NAME = "webapp-cluster"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/G1RAAJ/Devops-projects.git'
+            }
+        }
+
+        stage('Delete Helm Release') {
+            steps {
+                sh '''
+                helm uninstall webapp || true
+                '''
+            }
+        }
+
+        stage('Delete Kubernetes Resources') {
+            steps {
+                sh '''
+                kubectl delete svc webapp || true
+
+                kubectl delete deployment webapp || true
+                '''
+            }
+        }
+
+        stage('Delete EKS Access Entry') {
+            steps {
+                sh '''
+                aws eks delete-access-entry \
+                --cluster-name $CLUSTER_NAME \
+                --principal-arn arn:aws:iam::$ACCOUNT_ID:role/webapp-role \
+                --region $AWS_REGION || true
+                '''
+            }
+        }
+
+        stage('Terraform Destroy') {
+            steps {
+                dir('webapp-project/terraform') {
+                    sh '''
+                    terraform init -upgrade
+
+                    terraform destroy -auto-approve -var-file=terraform.tfvars
+                    '''
+                }
+            }
+        }
+
+        stage('Delete ECR Repository') {
+            steps {
+                sh '''
+                aws ecr delete-repository \
+                --repository-name $ECR_REPO_NAME \
+                --region $AWS_REGION \
+                --force || true
+                '''
+            }
+        }
+
+        stage('Delete CloudWatch Log Group') {
+            steps {
+                sh '''
+                aws logs delete-log-group \
+                --log-group-name /aws/eks/$CLUSTER_NAME/cluster \
+                --region $AWS_REGION || true
+                '''
+            }
+        }
+
+        stage('Delete KMS Alias') {
+            steps {
+                sh '''
+                aws kms delete-alias \
+                --alias-name alias/eks/$CLUSTER_NAME \
+                --region $AWS_REGION || true
+                '''
+            }
+        }
+
+        stage('Verify Cleanup') {
+            steps {
+                sh '''
+                echo "===== EKS Clusters ====="
+                aws eks list-clusters --region $AWS_REGION
+
+                echo "===== ECR Repositories ====="
+                aws ecr describe-repositories --region $AWS_REGION || true
+                '''
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'All Resources Destroyed Successfully'
+        }
+
+        failure {
+            echo 'Destroy Pipeline Failed'
+        }
+    }
+}
