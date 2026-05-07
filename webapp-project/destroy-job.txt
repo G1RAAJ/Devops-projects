@@ -112,3 +112,165 @@ pipeline {
         }
     }
 }
+--------------------------------------------------------
+Manually delete all resources 
+------------------------------
+✅ 1. Delete Helm Release
+helm uninstall webapp
+
+✅ 2. Delete Kubernetes Resources
+kubectl delete all --all
+
+✅ 3. Delete EKS Node Groups
+
+aws eks list-nodegroups \
+--cluster-name webapp-cluster \
+--region us-east-2
+
+Delete each nodegroup returned:
+
+aws eks delete-nodegroup \
+--cluster-name webapp-cluster \
+--nodegroup-name default \
+--region us-east-2
+
+If actual name differs, use that exact name.
+
+✅ 4. Verify Nodegroups Deleted
+aws eks list-nodegroups \
+--cluster-name webapp-cluster \
+--region us-east-2
+
+Wait until:
+
+{
+  "nodegroups": []
+}
+
+✅ 5. Delete EKS Cluster
+aws eks delete-cluster \
+--name webapp-cluster \
+--region us-east-2
+
+✅ 6. Delete ECR Repository
+aws ecr delete-repository \
+--repository-name webapp \
+--region us-east-2 \
+--force
+
+✅ 7. Delete CloudWatch Logs
+aws logs delete-log-group \
+--log-group-name /aws/eks/webapp-cluster/cluster \
+--region us-east-2
+
+✅ 8. Delete KMS Alias
+aws kms delete-alias \
+--alias-name alias/eks/webapp-cluster \
+--region us-east-2
+
+✅ 9. Delete Load Balancers
+
+aws elbv2 describe-load-balancers \
+--region us-east-2
+
+aws elbv2 delete-load-balancer \
+--load-balancer-arn <LOAD_BALANCER_ARN>
+
+✅ 10. Delete Security Groups (if remaining)
+
+aws ec2 describe-security-groups \
+--region us-east-2
+
+aws ec2 delete-security-group \
+--group-id <sg-id>
+
+✅ 11. Delete VPC (Optional)
+
+aws ec2 describe-vpcs \
+--region us-east-2
+
+aws ec2 delete-vpc \
+--vpc-id <vpc-id>
+
+🚀 FASTEST CLEAN CHECK
+
+After cleanup verify:
+
+EKS
+aws eks list-clusters --region us-east-2
+
+Expected:
+
+{
+  "clusters": []
+}
+
+ECR
+aws ecr describe-repositories --region us-east-2
+
+---------------------------------------------------
+To clear Jenkins Workspace
+------------------------------
+
+✅ Method 2 — Clean Using Shell Command
+
+On Jenkins EC2:
+
+cd /var/lib/jenkins/workspace
+ls
+
+Delete specific project workspace:
+
+rm -rf webapp-project
+
+OR delete all workspaces:
+
+rm -rf /var/lib/jenkins/workspace/*
+
+✅ Method 3 — Auto Clean Inside Jenkinsfile (Recommended)
+
+Add this stage at beginning:
+
+stage('Clean Workspace') {
+    steps {
+        cleanWs()
+    }
+}
+
+⚠️ Plugin Required
+
+Install plugin:
+Workspace Cleanup Plugin
+Inside Jenkins:
+
+Manage Jenkins
+→ Plugins
+→ Available Plugins
+→ Workspace Cleanup
+
+✅ Alternative Without Plugin
+
+Use shell command in Jenkinsfile:
+
+stage('Clean Workspace') {
+    steps {
+        sh '''
+        rm -rf *
+        '''
+    }
+}
+
+⚠️ CAREFUL
+
+Only use:
+rm -rf *
+
+inside Jenkins workspace directory.
+
+✅ Verify Workspace Cleaned
+
+ls /var/lib/jenkins/workspace
+
+🎯 Most Common Real Command
+
+rm -rf /var/lib/jenkins/workspace/webapp-project/
