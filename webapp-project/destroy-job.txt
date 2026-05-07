@@ -207,6 +207,39 @@ Expected:
 
 ECR
 aws ecr describe-repositories --region us-east-2
+-----------------------
+Delete Created Roles
+-------------------
+✅ Step 4 — Detach Policies
+aws iam detach-role-policy \
+--role-name webapp-role \
+--policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+
+✅ Step 5 — Remove Instance Profile
+aws iam list-instance-profiles-for-role \
+--role-name webapp-role
+
+aws iam remove-role-from-instance-profile \
+--instance-profile-name webapp-role \
+--role-name webapp-role
+
+aws iam delete-instance-profile \
+--instance-profile-name webapp-role
+
+✅ Step 6 — Delete Role
+aws iam delete-role \
+--role-name webapp-role
+
+
+🚀 Step 7 — Fastest Delete Role
+
+aws iam detach-role-policy \
+--role-name webapp-role \
+--policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+
+aws iam delete-role \
+--role-name webapp-role
+
 
 ---------------------------------------------------
 To clear Jenkins Workspace
@@ -274,3 +307,4 @@ ls /var/lib/jenkins/workspace
 🎯 Most Common Real Command
 
 rm -rf /var/lib/jenkins/workspace/webapp-project/
+
