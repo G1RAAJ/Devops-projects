@@ -152,6 +152,11 @@ aws eks list-nodegroups \
 --cluster-name myeks-1 \
 --region us-east-1
 
+aws eks delete-nodegroup \
+--cluster-name webapp-cluster \
+--nodegroup-name default-20260507060507334100000001 \
+--region us-east-2
+
 ✅ STEP 2: Delete ALL nodegroups
 for ng in $(aws eks list-nodegroups \
 --cluster-name myeks-1 \
