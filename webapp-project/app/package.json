@@ -1,7 +1,6 @@
 {
-  "name": "webapp-project",
+  "name": "webapp",
   "version": "1.0.0",
-  "description": "Node.js Web App Demo",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
