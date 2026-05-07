@@ -20,6 +20,16 @@ pipeline {
             }
         }
 
+        stage('Debug User') {
+            steps {
+                sh '''
+                whoami
+                pwd
+                ls -la ~/.kube
+                '''
+            }
+        }
+
         // -----------------------------
         // Terraform Apply
         // -----------------------------
@@ -99,13 +109,19 @@ pipeline {
         stage('Update kubeconfig') {
             steps {
                 sh '''
+                mkdir -p ~/.kube
+        
+                rm -f ~/.kube/config
+        
                 aws eks update-kubeconfig \
                 --region $AWS_REGION \
                 --name $CLUSTER_NAME
+        
+                kubectl get nodes
                 '''
             }
         }
-
+        
         // -----------------------------
         // Deploy using Helm
         // -----------------------------
