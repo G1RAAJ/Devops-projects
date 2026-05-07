@@ -27,8 +27,6 @@ pipeline {
             steps {
                 dir('webapp-project/terraform') {
                     sh '''
-                    rm -rf .terraform .terraform.lock.hcl
-
                     terraform init -upgrade
                     terraform apply -auto-approve -var-file=terraform.tfvars
                     '''
