@@ -14,6 +14,7 @@ provider "aws" {
 }
 
 module "eks" {
+
   source  = "terraform-aws-modules/eks/aws"
   version = "20.0.0"
 
@@ -23,26 +24,26 @@ module "eks" {
   vpc_id     = var.vpc_id
   subnet_ids = var.subnet_ids
 
-  # Enable public API access
-  cluster_endpoint_public_access = true
+  cluster_endpoint_public_access  = true
   cluster_endpoint_private_access = false
 
-  # Optional but recommended
   enable_irsa = true
+
+  # Disable automatic creation
+  create_kms_key              = false
+  create_cloudwatch_log_group = false
 
   eks_managed_node_groups = {
 
     default = {
 
       desired_size = 2
-      max_size     = 3
+      max_size     = 2
       min_size     = 1
 
       instance_types = ["t3.small"]
 
       ami_type = "AL2_x86_64"
-
-      capacity_type = "ON_DEMAND"
     }
   }
 
