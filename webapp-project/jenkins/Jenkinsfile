@@ -20,16 +20,6 @@ pipeline {
             }
         }
 
-        stage('Debug User') {
-            steps {
-                sh '''
-                whoami
-                pwd
-                ls -la ~/.kube
-                '''
-            }
-        }
-
         // -----------------------------
         // Terraform Apply
         // -----------------------------
