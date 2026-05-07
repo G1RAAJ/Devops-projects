@@ -108,17 +108,10 @@ pipeline {
         // -----------------------------
         stage('Update kubeconfig') {
             steps {
-                sh '''
-                mkdir -p ~/.kube
-        
-                rm -f ~/.kube/config
-        
+                sh '''        
                 aws eks update-kubeconfig \
                 --region $AWS_REGION \
                 --name $CLUSTER_NAME
-        
-                kubectl get nodes
-                '''
             }
         }
         
