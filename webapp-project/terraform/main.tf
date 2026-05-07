@@ -29,10 +29,6 @@ module "eks" {
 
   enable_irsa = true
 
-  # Disable automatic creation
-  create_kms_key              = false
-  create_cloudwatch_log_group = false
-
   eks_managed_node_groups = {
 
     default = {
