@@ -1,3 +1,4 @@
+Project: Github-Jenkins-Terraform--EKS-Docker-ECR
 webapp-project/
 ├── app/
 │   ├── Dockerfile
