@@ -75,11 +75,7 @@ pipeline {
 
         stage('Build Docker') {
             steps {
-                dir('webapp-project/app') {
-                    sh '''
-                    docker build -t webapp .
-                    '''
-                }
+                sh 'cd webapp-project/app && docker build -t webapp .'
             }
         }
 
