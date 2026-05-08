@@ -307,4 +307,119 @@ ls /var/lib/jenkins/workspace
 🎯 Most Common Real Command
 
 rm -rf /var/lib/jenkins/workspace/webapp-project/
+------------------------------------------------------------
+Problem solving commands
+---------------------------------
+🛠️Step 1: Delete Old EKS Cluster
 
+Run:
+aws eks delete-cluster \
+--name webapp-cluster \
+--region us-east-2
+
+🛠️Step 2: Delete KMS Alias
+
+Run:
+aws kms delete-alias \
+--alias-name alias/eks/webapp-cluster
+
+🛠️Step 3: Delete CloudWatch Log Group
+
+Run:
+aws logs delete-log-group \
+--log-group-name /aws/eks/webapp-cluster/cluster
+
+🛠️Step 4: Clean Terraform Cache
+Inside Jenkins EC2:
+
+cd webapp-project/terraform
+
+rm -rf .terraform
+rm -f .terraform.lock.hcl
+
+🛠️ Delete ASG
+aws autoscaling delete-auto-scaling-group \
+--auto-scaling-group-name <ASG_NAME> \
+--force-delete \
+--region us-east-2
+
+🛠️ Then Terminate EC2 Instances
+
+Get instance IDs:
+
+aws ec2 describe-instances \
+--region us-east-2 \
+--query "Reservations[*].Instances[*].InstanceId"
+
+Terminate:
+aws ec2 terminate-instances \
+--instance-ids i-xxxxxxxx \
+--region us-east-2
+[------------------------------------------------
+if you get error like below is..
+
+E0507 09:56:43.580768 9741 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+
+E0507 10:03:17.337224   10057 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"https://80BB074DBE72089C42A2DAE356A73F9C.gr7.us-east-2.eks.amazonaws.com/api?timeout=32s\": dial tcp: lookup 80BB074DBE72089C42A2DAE356A73F9C.gr7.us-east-2.eks.amazonaws.com on 172.31.0.2:53: no such host"
+
+: dial tcp: lookup 80BB074DBE72089C42A2DAE356A73F9C.gr7.us-east-2.eks.amazonaws.com on 172.31.0.2:53: no such host"
+Unable to connect to the server: dial tcp: lookup 80BB074DBE72089C42A2DAE356A73F9C.gr7.us-east-2.eks.amazonaws.com on 172.31.0.2:53: no such host
+---------------------------]
+install tools on sudo -i and perform task on sudo su - jenkins
+Do step by step
+
+aws sts get-caller-identity
+
+🔹 Step 1 — Create EKS Access Entry
+aws eks create-access-entry \
+--cluster-name webapp-cluster \
+--principal-arn arn:aws:iam::652942059461:role/webapp-role \
+--region us-east-2
+
+🔹 Step 2 — Attach EKS Admin Policy
+aws eks associate-access-policy \
+--cluster-name webapp-cluster \
+--principal-arn arn:aws:iam::652942059461:role/webapp-role \
+--policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+--access-scope type=cluster \
+--region us-east-2
+
+rm -rf ~/.kube/config
+
+aws eks update-kubeconfig \
+--region us-east-2 \
+--name webapp-cluster
+
+kubectl get nodes
+------------------------------------
+Error: [0m[0m[1mcreating KMS Alias (alias/eks/webapp-cluster): operation error KMS: CreateAlias, https response error StatusCode: 400, RequestID: 6672c084-99dd-4686-b8e0-e7761abc82a6, AlreadyExistsException: An alias with the name arn:aws:kms:us-east-2:652942059461:alias/eks/webapp-cluster already exists
+
+Error: [0m[0m[1mcreating CloudWatch Logs Log Group (/aws/eks/webapp-cluster/cluster): operation error CloudWatch Logs: CreateLogGroup, https response error StatusCode: 400, RequestID: c6ca1e9e-e0a6-4ee3-af57-aa0fdc9fb997, ResourceAlreadyExistsException: The specified log group already exists
+
+🔹 Delete KMS Alias
+aws kms delete-alias \
+--alias-name alias/eks/webapp-cluster \
+--region us-east-2
+
+🔹 Delete CloudWatch Log Group
+aws logs delete-log-group \
+--log-group-name /aws/eks/webapp-cluster/cluster \
+--region us-east-2
+
+🔹 Verify KMS Alias Deleted
+aws kms list-aliases \
+--region us-east-2
+
+🔹 Verify Log Group Deleted
+aws logs describe-log-groups \
+--region us-east-2
+
+Go to terraform directory:
+
+cd webapp-project/terraform
+
+rm -rf .terraform
+rm -f .terraform.lock.hcl
+
+terraform init -upgrade
+terraform apply -auto-approve -var-file=terraform.tfvars
